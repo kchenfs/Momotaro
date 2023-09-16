@@ -12,7 +12,7 @@ jobs:
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_DEFAULT_REGION: ca-central-1  # Replace with your desired AWS region
+      AWS_REGION: ${{ secrets.AWS_REGION }}
 
     steps:
       - name: Checkout code
@@ -21,7 +21,8 @@ jobs:
       # Step 1: Initialize Terraform
       - name: Initialize Terraform
         run: |
-          terraform init
+          terraform fmt
+          terraform init -upgrade
         working-directory: .  # Replace with your Terraform config directory
 
       # Step 2: Apply Terraform Configuration
