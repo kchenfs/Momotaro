@@ -29,7 +29,7 @@ jobs:
       - name: Apply Terraform Configuration
         run: |
           terraform apply -auto-approve
-        working-directory: path/to/terraform/configuration  # Replace with your Terraform config directory
+        working-directory: .  # Replace with your Terraform config directory
 
       # Step 3: Build and Run generate-layer image
       - name: Build Docker image
@@ -45,7 +45,7 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: ca-central-1  # Adjust the region as needed
+          AWS_REGION: ca-central-1  # Adjust the region as needed
         # Be sure to set your AWS credentials and region as secrets in your repository
 
       # Step 5: Push to Lambda Layer (if necessary)
@@ -61,7 +61,7 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: ca-central-1
+          AWS_REGION: ca-central-1
 
       # Step 6: Clean up
       - name: Clean up
