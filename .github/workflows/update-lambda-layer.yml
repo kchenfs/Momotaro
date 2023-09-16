@@ -17,7 +17,7 @@ jobs:
       - name: Initialize Terraform
         run: |
           terraform init
-        working-directory: path/to/terraform/configuration  # Replace with your Terraform config directory
+        working-directory: .  # Replace with your Terraform config directory
 
       # Step 2: Apply Terraform Configuration
       - name: Apply Terraform Configuration
