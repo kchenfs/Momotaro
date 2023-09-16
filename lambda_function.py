@@ -1,0 +1,707 @@
+import spacy
+import boto3
+import secrets
+import string
+import math
+import re
+from rapidfuzz.process import extractOne
+import botocore.exceptions
+import datetime
+import requests
+
+
+
+# AWS Clients
+dynamodb_client = boto3.client('dynamodb')
+lex_client = boto3.client('lexv2-runtime')
+pinpoint_client = boto3.client('pinpoint')
+ses_client = boto3.client('ses')
+#spacy language model
+nlp = spacy.load("en_core_web_sm")
+# Constants
+tax_rate = 0.13 
+
+# Receipt Template
+receipt_template = """
+--------------------------------------
+         Momotaro Sushi
+--------------------------------------
+Date: {}
+Order ID: {}
+Customer: {}
+Phone: {}
+--------------------------------------
+Items:
+{}
+--------------------------------------
+Subtotal: {}
+Tax: {}
+Total: {}
+--------------------------------------
+Pickup Time: {}
+--------------------------------------
+Thank you for your order!
+--------------------------------------
+"""
+
+def validate(slots):
+    if not slots['CustomerName']:
+        return {
+            'isValid': False,
+            'violatedSlot': 'CustomerName'
+        }
+
+    if not slots['PhoneNumber']:
+        return {
+            'isValid': False,
+            'violatedSlot': 'PhoneNumber',
+        }
+
+    if not slots['OrderPickUpTime']:
+        return {
+            'isValid': False,
+            'violatedSlot': 'OrderPickUpTime',
+        }
+
+    if not slots['ItemChoice']:
+        return {
+            'isValid': False,
+            'violatedSlot': 'ItemChoice',
+        }
+
+    return {'isValid': True}
+
+
+
+def extract_items_and_quantities(ordered_items):
+    doc = nlp(ordered_items)
+    
+    combined_list = []
+
+    for chunk in doc.noun_chunks:
+        quantity = None
+        item = None
+        for token in chunk:
+            if token.pos_ == "NUM":
+                quantity = token.text
+            else:
+                item = chunk.text.replace(quantity, '').strip() if quantity else chunk.text
+        if quantity and item:
+            combined_list.append((item, quantity))
+
+
+    print("doc",doc.noun_chunks)
+    print("chunk",chunk)
+    print("token", token)        
+    print("quantity:", quantity)
+    print("item:", item)
+    return combined_list
+
+def parse_ordered_items(combined_list, menu_items):
+    print("Before we apply the fuzzy matching", combined_list)
+    parsed_items = []
+    print(combined_list)
+    for entry in combined_list:
+        if len(entry) == 2:
+            name, quantity = entry
+        else:
+            name = entry[0]
+            quantity = 1
+
+        # Use fuzzy matching to find the closest match in the menu_items list
+        closest_match = find_closest_match(name, menu_items)
+        print("this is after find_closest_match executes", closest_match)
+        parsed_items.append((closest_match, int(quantity)))
+
+    print("Parsed Items:", parsed_items)
+    return parsed_items
+
+
+def generate_order_id(length=5):
+    characters = string.ascii_letters + string.digits
+    order_id = ''.join(secrets.choice(characters) for _ in range(length))
+    return order_id.upper()
+
+
+def get_item_price(item_name):
+    # Define the API URL for fetching the price
+    api_url = "https://i2xyv3lwk9.execute-api.ca-central-1.amazonaws.com/test/Momotaro/GetItemPrice"
+    print(type(item_name))
+    print(len(item_name))
+    data = {
+        'item_name': item_name
+    }
+    print("get_item_price block",data)
+    # Make a GET request to the API
+    response = requests.get(api_url, json=data)
+    print(response)
+    response_data = response.json()
+    print("JSONDECODE", response_data)
+    price = response_data.get("price")
+
+    if price is not None:
+        # Convert the price to a float if needed
+        price = float(price)
+        return price
+    else:
+        print(f"Price not found for item: aburi sushi")
+        return None
+
+
+def get_item_names_from_menu_table():
+    """
+    Retrieve the list of item names from the DynamoDB menu table using a GET request.
+
+    Args:
+        api_url (str): The URL of your API Gateway endpoint.
+
+    Returns:
+        list: List of item names.
+    """
+    
+    # Define the API Gateway URL
+    api_url = "https://i2xyv3lwk9.execute-api.ca-central-1.amazonaws.com/test/Momotaro/GetMenuItems"
+
+    # Make a GET request to the API Gateway
+    response = requests.get(api_url)
+    print(response)
+    if response.status_code == 200:
+        # Assuming the response contains JSON data with item names
+        item_names = response.json()
+        print("this is item names", item_names)
+        menu_items = item_names.get("items",[])
+        print(menu_items)
+        return menu_items
+    else:
+        print('Failed to retrieve item names using the API')
+        return None
+
+
+def find_closest_match(item_name, menu_items):
+    """
+    Find the closest match for the given item name in the list of menu items.
+
+    Args:
+        item_name (str): The item name extracted from the customer's input.
+        menu_items (list): List of item names from the DynamoDB menu table.
+
+    Returns:
+        str: The closest matching item name from the menu_items list.
+    """
+    match, score, _ = extractOne(item_name, menu_items)
+    print('the customer ordered the following items', item_name)
+    print('this is the closest match in our database', match)
+    print('this is the confidence score', score)
+    return match if score >= 80 else None
+
+
+
+def format_ordered_items(parsed_items):
+    formatted_items = [f"{quantity} {item}" for item, quantity in parsed_items]
+    formatted_string = ", ".join(formatted_items)
+    return formatted_string
+
+
+def save_customer_info(name, ordered_items, phone_number, pickup_time, total_price_with_tax):
+    order_id = generate_order_id(5)
+    print("save_customer_info", total_price_with_tax)
+
+    # Construct the request body
+    data = {
+        "order_id": order_id,
+        "name": name,
+        "ordered_items": ordered_items,
+        "phone_number": phone_number,
+        "pickup_time": pickup_time,
+        "total_price_with_tax": total_price_with_tax
+    }
+
+    # Define the API Gateway URL
+    api_url = "https://i2xyv3lwk9.execute-api.ca-central-1.amazonaws.com/test/Momotaro/SaveCustomerInfo"
+
+    # Make a POST request to the API Gateway
+    response = requests.post(api_url, json=data)
+
+    if response.status_code == 200:
+        print('Successfully saved the info using the API')
+        return order_id
+    else:
+        print('Failed to save the info using the API')
+        return None
+
+
+def confirm_intent(intent, slots, name, ordered_items, pickup_time, phone_number):
+    confirmation_prompt = (
+        f"Thanks, {name}! Here's a summary of your order:\n"
+        f"You have ordered {ordered_items}.\n"
+        f"Your order will be ready for pickup at {pickup_time}.\n"
+        f"We will contact you at {phone_number} if needed.\n"
+        f"Would you like to confirm your order?"
+    )
+
+    return {
+        'sessionState': {
+            'dialogAction': {
+                'type': 'ConfirmIntent',
+                'intentName': intent,
+                'slots': slots
+            },
+            'intent': {
+                'name': intent,
+                'slots': slots
+            },
+            'sessionAttributes': session_attributes
+        },
+        'messages': [
+            {
+                'contentType': 'PlainText',
+                'content': confirmation_prompt
+            }
+        ]
+    }
+
+def send_lex_response(app_id, origination_number, destination_number, messages):
+    responses = []
+    for message in messages:
+        response = pinpoint_client.send_messages(
+            ApplicationId=app_id,
+            MessageRequest={
+                'Addresses': {
+                    destination_number: {
+                        'ChannelType': 'SMS'
+                    }
+                },
+                'MessageConfiguration': {
+                    'SMSMessage': {
+                        'Body': message,
+                        'MessageType': 'TRANSACTIONAL',
+                        'OriginationNumber': origination_number
+                    }
+                }
+            }
+        )
+        responses.append(response)
+
+    return responses
+
+
+def handle_sns_message(event):
+    sns_message = json.loads(event['Records'][0]['Sns']['Message'])
+    app_id = '0e3e20a71a2e42a29fd90cc63f461b1f'
+    origination_number = sns_message['destinationNumber']
+    destination_number = sns_message['originationNumber']
+    customer_message = sns_message['messageBody']
+    print(customer_message)
+    lex_response = lex_client.recognize_text(
+        botId='IF1YEI2Z1K',
+        botAliasId='TSTALIASID',
+        localeId='en_US',
+        sessionId='user_id',
+        text=customer_message
+    )
+
+    print("Lex Response:", lex_response)
+
+    messages = [message['content'] for message in lex_response['messages']]
+
+    # Send the complete message as a list
+    response = send_lex_response(app_id, origination_number, destination_number, messages)
+
+    return lex_response
+
+
+def generate_receipt(order_date, order_id, customer_name, customer_phone, ordered_items,
+                     subtotal_price, tax_amount, total, pickup_time):
+    """
+    Generate the receipt content based on the provided order details.
+
+    Args:
+        order_date (str): Date of the order.
+        order_id (str): Order ID.
+        customer_name (str): Customer's name.
+        customer_phone (str): Customer's phone number.
+        ordered_items (str): String representation of ordered items.
+        subtotal (str): Subtotal amount.
+        tax (str): Tax amount.
+        total (str): Total amount.
+        pickup_time (str): Pickup time.
+
+    Returns:
+        str: Receipt content.
+    """
+    formatted_order_date = order_date.strftime('%Y-%m-%d %H:%M')
+
+    receipt_content = receipt_template.format(
+        formatted_order_date, order_id, customer_name, customer_phone,
+        ordered_items, subtotal_price, tax_amount, total, pickup_time
+    )
+    return receipt_content
+
+
+def send_email(sender_email, customer_email, subject, body):
+    try:
+        response = ses_client.send_email(
+            Source=sender_email,
+            Destination={
+                'ToAddresses': [customer_email]
+            },
+            Message={
+                'Subject': {
+                    'Data': subject
+                },
+                'Body': {
+                    'Text': {
+                        'Data': body
+                    }
+                }
+            }
+        )
+        print("Email sent successfully:", response)
+    except botocore.exceptions.ClientError as e:
+        print("Error sending email:", e)
+
+
+def lambda_handler(event, context):
+    print("top of the tree in the lambda handler")
+    session_attributes = event.get('sessionState', {}).get('sessionAttributes', {})
+    print(context)
+    if 'Records' in event:
+        response = None
+        handle_sns_message(event)
+
+        # Handle other SNS message-related operations as needed
+
+    else:
+        slots = event['sessionState']['intent']['slots']
+        intent = event['sessionState']['intent']['name']
+        response = None
+        print("the global access for intent", intent)
+        if intent == 'Greeting':
+            response = {
+                'sessionState': {
+                    'dialogAction': {
+                        'type': 'Close'
+                    },
+                    'intent': {
+                        'name': intent,
+                        'slots': slots,
+                        'state': 'Fulfilled'
+                    }
+                },
+                'messages': [
+                    {
+                        'contentType': 'PlainText',
+                        'content': "Hello! Welcome to Momotaro Sushi. Here is our menu: [Momotaro Menu](https://momotarosushi.s3.ca-central-1.amazonaws.com/momotaro-sushi-online-menu-.pdf)"
+                    },
+                    {
+                        'contentType': 'PlainText',
+                        'content': "If you are ready to order, please type 'pick up' or 'take out'."
+                    }
+                ]
+            }
+        elif intent == 'RestartIntent':
+            response = {
+                'sessionState': {
+                    'dialogAction': {
+                        'type': 'ElicitIntent'
+                    },
+                    'intent': {
+                        'name': 'Greeting',
+                        'slots': {},
+                        'state': 'Fulfilled'
+                    }
+                },
+                'messages': [
+                    {
+                        'contentType': 'PlainText',
+                        'content': "Hello! Welcome to Momotaro Sushi. Here is our menu: https://momotarosushi.s3.ca-central-1.amazonaws.com/momotaro-sushi-online-menu-.pdf"
+                    },
+                    {
+                        'contentType': 'PlainText',
+                        'content': "If you are ready to order, please type 'pick up' or 'take out'."
+                    }
+                ]
+            }
+        elif intent == 'EmailReceiptIntent':
+            receipt_confirmation = slots.get('ReceiptConfirmation', {}).get('value', {}).get('interpretedValue', '').lower()
+            email_slot = slots.get('CustomerEmail')
+
+            if not email_slot and receipt_confirmation == 'yes':  # If email_slot is empty, elicit the CustomerEmail slot and the customer says yes to a receipt
+                response = {
+                    'sessionState': {
+                        'dialogAction': {
+                            'type': 'ElicitSlot',
+                            'slotToElicit': 'CustomerEmail'
+                        },
+                        'intent': {
+                            'name': 'EmailReceiptIntent',
+                            'slots': slots
+                        }
+                    },
+                    'messages': [
+                        {
+                            'contentType': 'PlainText',
+                            'content': 'Please provide the email address you would like to send the receipt to.'
+                        }
+                    ]
+                }
+            elif receipt_confirmation == 'yes':
+
+                    email_slot = slots.get('CustomerEmail')
+                    print("receipt confirmation is 'yes'.")
+                    customer_email = email_slot['value']['interpretedValue']
+                    sender_email = 'kencfs@outlook.com'  # Replace with your SES sender email
+                    subject = 'Momotaro Sushi - Order Receipt'
+
+                    name = session_attributes['CustomerName']
+                    ordered_items = session_attributes['ItemChoice']
+                    phone_number = session_attributes['PhoneNumber']
+                    pickup_time = session_attributes['OrderPickUpTime']
+                    order_id = session_attributes['OrderId']
+                    subtotal_price = session_attributes['BillSubtotal']
+                    tax_amount = session_attributes['BillTaxAmount']
+                    total_price_with_tax = session_attributes['BillTotal']
+                    print(session_attributes)
+                                
+                    
+                    # Generate the receipt content
+                    receipt_content = generate_receipt(
+                        order_date=(datetime.datetime.now()),
+                        order_id=order_id,
+                        customer_name=name,
+                        customer_phone=phone_number,
+                        ordered_items=ordered_items,
+                        subtotal_price=subtotal_price,
+                        tax_amount=tax_amount,
+                        total=total_price_with_tax,
+                        pickup_time=pickup_time
+                    )
+
+                    # Send email using Amazon SES
+                    send_email(sender_email, customer_email, subject, receipt_content)
+                    
+                    # Modify Lex's response to include the receipt hyperlink
+                    receipt_message = (
+   "The receipt has been sent to your email."
+)
+
+                    response = {
+                        'sessionState': {
+                            'dialogAction': {
+                                'type': 'Close'
+                            },
+                            'intent': {
+                                'name': intent,
+                                'slots': slots,
+                                'state': 'Fulfilled'
+                            }
+                        },
+                        'messages': [
+                            {
+                                'contentType': 'PlainText',
+                                'content': receipt_message
+                            }
+                        ]
+                    }
+
+            elif not email_slot and receipt_confirmation == 'no':
+                print("Receipt confirmation is 'no'.")
+                response = {
+                    'sessionState': {
+                        'dialogAction': {
+                            'type': 'Close'
+                        },
+                        'intent': {
+                            'name': intent,
+                            'slots': slots,
+                            'state': 'Fulfilled'
+                        }
+                    },
+                    'messages': [
+                        {
+                            'contentType': 'PlainText',
+                            'content': 'Alright. Your order has been confirmed. Thank you for choosing us!'
+                        }
+                    ]
+                }
+            else:
+                print("Receipt confirmation is neither 'yes' nor 'no'. Eliciting the FallbackIntent.")
+                response = {
+                    'sessionState': {
+                        'dialogAction': {
+                            'type': 'ElicitIntent'
+                        },
+                        'intent': {
+                            'name': 'FallbackIntent',
+                            'state': 'Fulfilled'
+                        }
+                    },
+                    'messages': [
+                        {
+                            'contentType': 'PlainText',
+                            'content': "Sorry, I didn't understand your response. Please type 'start over' to restart the ordering process."
+                        }
+                    ]
+                }
+                            
+        
+        elif intent == 'OrderItem':
+           
+            print("this is in the OrderItem block", session_attributes)
+            validation_result = validate(slots)
+            response = None  # Initialize response variable
+            confirmation_state = event['interpretations'][0]['intent']['confirmationState']
+
+            if confirmation_state == 'Confirmed':
+                ordered_items = session_attributes['ItemChoice']
+                subtotal_price = session_attributes['BillSubtotal']
+                tax_amount = session_attributes['BillTaxAmount']
+                total_price_with_tax = session_attributes['BillTotal']
+                name = session_attributes['CustomerName']
+                phone_number = session_attributes['PhoneNumber']
+                pickup_time = session_attributes['OrderPickUpTime']
+                print("This is in the confirmation=yes block", ordered_items)
+            
+                # Save customer info to database and get order ID
+                print('this is before we save the info to the database', tax_amount, subtotal_price)
+                order_id =  save_customer_info(name, ordered_items, phone_number, pickup_time, total_price_with_tax)            
+                print('this is after we save the data into the database', tax_amount, subtotal_price)
+                session_attributes.update({
+                        'OrderId':order_id
+                })
+                total_price_with_tax = float(total_price_with_tax)  # Convert the string to a float
+                receipt_message = f"Thanks, {name}, I placed your order. Your order number is {order_id}, see you at {pickup_time}. " \
+                                f"Total price: ${total_price_with_tax:.2f} (including tax). Did you want a copy of your receipt to be sent via email?"
+
+                response = {
+                    'sessionState': {
+                        'dialogAction': {
+                            'type': 'ElicitSlot',
+                            'slotToElicit': 'ReceiptConfirmation'
+                        },
+                        'intent': {
+                            'name': 'EmailReceiptIntent',
+                            'state': 'InProgress'
+                        },
+                        'sessionAttributes': session_attributes  # Save the updated session_attributes with customer info
+                    },
+                    'messages': [
+                        {
+                            'contentType': 'PlainText',
+                            'content': receipt_message
+                        }
+                    ]
+                }
+            # ... (other code)
+
+            elif confirmation_state == 'Denied':
+                response = {
+                    'sessionState': {
+                        'dialogAction': {
+                            'type': 'Close'
+                        },
+                        'intent': {
+                            'name': intent,
+                            'state': 'Fulfilled',
+                            'slots': {}
+                        }
+                    },
+                    'messages': [
+                        {
+                            'contentType': 'PlainText',
+                            'content': "Okay, we won't process your order. If you decide to change your mind, please start over by saying 'cancel'."
+                        }
+                    ]
+                }
+
+            elif event['invocationSource'] == 'DialogCodeHook':#this only executes when we are in the OrderItem intent block and there are missing slot values, So it will return the intent as well as the slots with null values and that will be Lex's response
+                if not validation_result['isValid']:
+                    response = {
+                        'sessionState': {
+                            
+                            'dialogAction': {
+                                'slotToElicit': validation_result['violatedSlot'],
+                                'type': 'ElicitSlot'
+                            },
+                            'intent': {
+                                'name': intent,
+                                'slots': slots
+                            }
+                        }
+                    }
+                else:
+                    # Retrieve session attributes if they exist
+                    print("this is in the last elses block of the code before we save the information to attributes")
+                    name = slots['CustomerName']['value']['interpretedValue']
+                    ordered_items = slots['ItemChoice']['value']['interpretedValue']
+                    phone_number = slots['PhoneNumber']['value']['interpretedValue']
+                    pickup_time = slots['OrderPickUpTime']['value']['interpretedValue']
+                    session_attributes = event['sessionState']['sessionAttributes']
+                    # Update the slots dictionary with the values from session_attributes
+                    session_attributes.update({
+                        'CustomerName': name,
+                        'ItemChoice': ordered_items,
+                        'OrderPickUpTime': pickup_time,
+                        'PhoneNumber': phone_number
+                    })     
+                    print("successfully updated the session_attributes", session_attributes)
+
+                    #this line of code needs to be processed first because before the confirmation_intent is executed, by this point all the other slots will have
+                    #been filled with a slot value, we then run then apply the fuzzy matching and the spacy libraries to the ordered_items intent and then updated the
+                    #slot name ordered_items
+                    combined_list = extract_items_and_quantities(ordered_items)
+                    print("combined list", combined_list)
+                    menu_items = get_item_names_from_menu_table()
+                    parsed_items = parse_ordered_items(combined_list, menu_items)
+
+                    subtotal_price = sum(get_item_price(item) * quantity for item, quantity in parsed_items)
+                    tax_amount = subtotal_price * tax_rate
+                    tax_amount = round(tax_amount, 2)
+                    total_price_with_tax = tax_amount + subtotal_price
+                    total_price_with_tax = round(total_price_with_tax, 2)
+                    ordered_items = format_ordered_items(parsed_items)
+                    session_attributes.update({
+                        'ItemChoice': ordered_items,  
+                        'BillSubtotal':subtotal_price,
+                        'BillTaxAmount':tax_amount,
+                        'BillTotal':total_price_with_tax
+                    })
+                    print("sessionAttributes after spacy and fuzzy", session_attributes, ordered_items)    
+                    # Call confirm_intent function to generate the confirmation message
+                    return {
+                        'sessionState': {
+                            'dialogAction': {
+                                'type': 'ConfirmIntent',
+                                'intentName': intent,
+                                'slots': slots
+                            },
+                            'intent': {
+                                'name': intent,
+                                'slots': slots
+                            },
+                            'sessionAttributes': session_attributes
+                        },
+                        'messages': [
+                            {
+                                'contentType': 'PlainText',
+                                'content': f"Thanks, {name}! Here's a summary of your order:\n"
+                        f"You have ordered {ordered_items}.\n"
+                        f"Your order will be ready for pickup at {pickup_time}.\n"
+                        f"We will contact you at {phone_number} if needed.\n"
+                        f"Would you like to confirm your order?"
+                            }
+                        ]
+                    }
+
+
+    # Return the appropriate response if needed
+    print("This is the Lex's Response", response)
+    return response  # Return the response if it's needed for the Lambda function's behavior
+
+#perhaps we make another elif block where if all slot values are filled, we run the parsing function
+
+# """"in the final else block we should be able to retrieve the session attributes and use that to
+#the name, we can use for the ordered_items, and the pick up time. I think regardless it should work.
+
+#sessionAttributes can be use to guide the conversation based on previous interactions, for e.g. if the user has already provided their name or if they have elect certain options - perhaps can be used to recall customers previous order
+

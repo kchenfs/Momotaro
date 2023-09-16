@@ -1,0 +1,16 @@
+FROM amazonlinux:latest
+
+RUN ulimit -n 1024 && yum -y update && yum -y install \
+    python3.11 \
+    python3.11-pip \
+    python3.11-devel \
+    zip \
+    && yum clean all
+
+# Install pip
+RUN python3.11 -m ensurepip --default-pip && \
+    python3.11 -m pip install --upgrade pip
+
+RUN pip install virtualenv==20.24.3
+
+# ... rest of your Dockerfile

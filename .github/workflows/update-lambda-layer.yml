@@ -1,0 +1,64 @@
+name: Update Lambda Layer
+
+on:
+  push:
+    branches:
+      - main  # Adjust the branch as needed
+
+jobs:
+  update_lambda_layer:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Step 1: Initialize Terraform
+      - name: Initialize Terraform
+        run: |
+          terraform init
+        working-directory: path/to/terraform/configuration  # Replace with your Terraform config directory
+
+      # Step 2: Apply Terraform Configuration
+      - name: Apply Terraform Configuration
+        run: |
+          terraform apply -auto-approve
+        working-directory: path/to/terraform/configuration  # Replace with your Terraform config directory
+
+      # Step 3: Build and Run generate-layer image
+      - name: Build Docker image
+        run: |
+          chmod +x runner.sh  # Ensure the script is executable
+          ./runner.sh 
+        # You may need to log in to a Docker registry here
+
+      # Step 4: Run upload-layer image
+      - name: Run upload-layer image
+        run: |
+          docker run --rm my-docker-image:latest
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ca-central-1  # Adjust the region as needed
+        # Be sure to set your AWS credentials and region as secrets in your repository
+
+      # Step 5: Push to Lambda Layer (if necessary)
+      - name: Push to Lambda Layer (if necessary)
+        # Run AWS CLI commands to publish the Lambda layer version
+        run: |
+          aws lambda publish-layer-version \
+            --layer-name momotaro-layer \
+            --description "My Lambda Layer" \
+            --zip-file fileb:///python.zip \
+            --compatible-runtimes python3.11 \
+            --region ca-central-1
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ca-central-1
+
+      # Step 6: Clean up
+      - name: Clean up
+        run: |
+          docker rmi my-docker-image:latest
+          docker image prune -f
