@@ -38,6 +38,10 @@ jobs:
           chmod +x runner.sh  # Ensure the script is executable
           ./runner.sh 
         # You may need to log in to a Docker registry here
+      - name: Debug
+        run: |
+          pwd
+          ls -l
 
       # Step 4: Build and Run upload-layer image
       - name: Run upload-layer image
