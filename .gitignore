@@ -5,8 +5,10 @@ __pycache__/
 
 #terraform state files
 .terraform/
-terraform.tfstate.backup
-terraform.tfstate
+# Terraform state files
+*.tfstate
+*.tfstate.backup
+
 
 # C extensions
 *.so
