@@ -46,7 +46,6 @@ jobs:
       # Step 4: Build and Run upload-layer image
       - name: Run upload-layer image
         run: |
-          cd ../..   # This command will take you back two directories
           cd upload-layer
           docker build -t upload-layer-image .
           docker run --rm upload-layer-image:latest
