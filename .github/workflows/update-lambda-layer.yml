@@ -47,7 +47,7 @@ jobs:
       - name: Run upload-layer image
         run: |
           cd upload-layer
-          docker build -t upload-layer-image .
+          docker build -t upload-layer-image -f Dockerfile.service2 .
           docker run --rm upload-layer-image:latest
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
