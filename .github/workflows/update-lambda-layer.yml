@@ -39,9 +39,11 @@ jobs:
           ./runner.sh 
         # You may need to log in to a Docker registry here
 
-      # Step 4: Run upload-layer image
+      # Step 4: Build and Run upload-layer image
       - name: Run upload-layer image
         run: |
+          cd /
+          cd upload-layer
           docker run --rm my-docker-image:latest
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
