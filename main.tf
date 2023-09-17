@@ -386,3 +386,11 @@ resource "aws_dynamodb_table" "state_lock_db" {
 }
 
 
+
+resource "aws_lambda_layer_version" "momotaro_layer" {
+  layer_name         = "momotaro-layer"
+  description        = "My Lambda Layer"
+  compatible_runtimes = ["python3.11"]
+
+  filename = "${path.module}/generate-layer/scripts/python.zip"
+}

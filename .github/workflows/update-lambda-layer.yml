@@ -33,6 +33,8 @@ jobs:
           cd scripts
           pwd
           ls -l
+          
+        
 
 
        # Step 1: Initialize Terraform
