@@ -30,7 +30,7 @@ jobs:
           cd generate-layer/scripts/
           pwd
           ls -l
-          aws s3 cp python.zip s3:momotaropackage
+          aws s3 cp python.zip s3://momotaropackage/
 
        # Step 1: Initialize Terraform
       - name: Initialize Terraform
