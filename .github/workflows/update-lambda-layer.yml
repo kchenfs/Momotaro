@@ -45,16 +45,6 @@ jobs:
           terraform apply -auto-approve
         working-directory: .  # Replace with your Terraform config directory
   
-      # Step 3: Push to Lambda Layer (if necessary)
-      - name: Push to Lambda Layer (if necessary)
-        # Run AWS CLI commands to publish the Lambda layer version
-        run: |
-          aws lambda publish-layer-version \
-            --layer-name momotaro-layer \
-            --description "My Lambda Layer" \
-            --zip-file fileb:///python.zip \
-            --compatible-runtimes python3.11 \
-            --region ca-central-1
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

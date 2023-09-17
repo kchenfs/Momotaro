@@ -392,5 +392,7 @@ resource "aws_lambda_layer_version" "momotaro_layer" {
   description        = "My Lambda Layer"
   compatible_runtimes = ["python3.11"]
 
-  filename = "${path.module}/generate-layer/scripts/python.zip"
+  s3_bucket = "momotaropackage"  # Replace with your S3 bucket name
+  s3_key    = "python.zip"  # Set the key to the filename "python.zip"
 }
+
