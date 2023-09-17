@@ -27,15 +27,10 @@ jobs:
         # You may need to log in to a Docker registry here
       - name: Debug
         run: |
-          cd generate-layer
+          cd generate-layer/scripts/
           pwd
           ls -l
-          cd scripts
-          pwd
-          ls -l
-          
-        
-
+          aws s3 cp python.zip s3:momotaropackage
 
        # Step 1: Initialize Terraform
       - name: Initialize Terraform
