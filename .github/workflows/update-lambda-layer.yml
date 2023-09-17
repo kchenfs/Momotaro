@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v2
 
       # Step 3: Build and Run generate-layer image
-      - name: Build Docker image
+      - name: Build Lambda_Layer image
         run: |
           cd generate-layer/scripts/
           chmod +x runner.sh  # Ensure the script is executable
@@ -27,8 +27,13 @@ jobs:
         # You may need to log in to a Docker registry here
       - name: Debug
         run: |
+          cd generate-layer
           pwd
           ls -l
+          cd scripts
+          pwd
+          ls -l
+
 
        # Step 1: Initialize Terraform
       - name: Initialize Terraform
@@ -43,7 +48,7 @@ jobs:
           terraform apply -auto-approve
         working-directory: .  # Replace with your Terraform config directory
   
-      # Step 5: Push to Lambda Layer (if necessary)
+      # Step 3: Push to Lambda Layer (if necessary)
       - name: Push to Lambda Layer (if necessary)
         # Run AWS CLI commands to publish the Lambda layer version
         run: |
