@@ -37,21 +37,11 @@ jobs:
         run: |
           terraform fmt
           terraform init -upgrade
-        working-directory: .  # Replace with your Terraform config directory
-
-      # Step 2: Apply Terraform Configuration
-      - name: Apply Terraform Configuration
-        run: |
           terraform apply -auto-approve
-        working-directory: .  # Replace with your Terraform config directory
   
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION:  ${{ secrets.AWS_REGION }}
 
-      # Step 6: Clean up
-      - name: Clean up
-        run: |
-          docker rmi my-docker-image:latest
-          docker image prune -f
+  
