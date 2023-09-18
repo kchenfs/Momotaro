@@ -396,3 +396,4 @@ resource "aws_lambda_layer_version" "momotaro_layer" {
   s3_key    = "python.zip"  # Set the key to the filename "python.zip"
 }
 
+resource "aws_lambda_function" "Momotaro_Function" {
