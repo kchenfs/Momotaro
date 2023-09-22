@@ -54,7 +54,7 @@ resource "aws_api_gateway_stage" "momotaro_stage" {
   deployment_id = aws_api_gateway_deployment.momotaro_deployment.id
   rest_api_id   = aws_api_gateway_rest_api.momotaro_api.id
   stage_name    = "test" # Same as the stage_name in the deployment
- 
+
 }
 
 
@@ -64,8 +64,8 @@ resource "aws_api_gateway_deployment" "momotaro_deployment" {
   rest_api_id = aws_api_gateway_rest_api.momotaro_api.id
 
   triggers = {
-    get_item_price_integration = "Triggered by get_item_price_integration",
-    get_menu_items_integration = "Triggered by get_menu_items_integration",
+    get_item_price_integration     = "Triggered by get_item_price_integration",
+    get_menu_items_integration     = "Triggered by get_menu_items_integration",
     save_customer_info_integration = "Triggered by save_customer_info_integration",
   }
 
@@ -388,26 +388,26 @@ resource "aws_dynamodb_table" "state_lock_db" {
 
 
 resource "aws_lambda_layer_version" "momotaro_layer" {
-  layer_name         = "momotaro-layer"
-  description        = "My Lambda Layer"
+  layer_name          = "momotaro-layer"
+  description         = "My Lambda Layer"
   compatible_runtimes = ["python3.11"]
 
-  s3_bucket = "momotaropackage"  # Replace with your S3 bucket name
-  s3_key    = "python.zip"  # Set the key to the filename "python.zip"
+  s3_bucket = "momotaropackage" # Replace with your S3 bucket name
+  s3_key    = "python.zip"      # Set the key to the filename "python.zip"
 }
 
 resource "aws_lambda_function" "momotaro_function" {
   function_name = "MomotaroCode"
-  handler      = "lambda_function.lambda_handler"
-  runtime      = "python3.11"
-  role         = "arn:aws:iam::798965869505:role/service-role/MomotaroFunction-role-7vrxdg4j"
-  s3_bucket =
-  s3_key = 
+  handler       = "lambda_function.lambda_handler"
+  runtime       = "python3.11"
+  role          = "arn:aws:iam::798965869505:role/service-role/MomotaroFunction-role-7vrxdg4j"
+  s3_bucket     = "momotaropackage"
+  s3_key        = "lambda_artifact.zip"
 
   environment {
     variables = {
-      ITEM_PRICE_API_URL     = "https://i2xyv3lwk9.execute-api.ca-central-1.amazonaws.com/test/Momotaro/GetItemPrice"
-      MENU_ITEMS_API_URL     = "https://i2xyv3lwk9.execute-api.ca-central-1.amazonaws.com/test/Momotaro/GetMenuItems"
+      ITEM_PRICE_API_URL         = "https://i2xyv3lwk9.execute-api.ca-central-1.amazonaws.com/test/Momotaro/GetItemPrice"
+      MENU_ITEMS_API_URL         = "https://i2xyv3lwk9.execute-api.ca-central-1.amazonaws.com/test/Momotaro/GetMenuItems"
       SAVE_CUSTOMER_INFO_API_URL = "https://i2xyv3lwk9.execute-api.ca-central-1.amazonaws.com/test/Momotaro/SaveCustomerInfo"
       # Add other environment variables as needed
     }

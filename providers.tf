@@ -4,10 +4,10 @@ provider "aws" {
 
 terraform {
   backend "s3" {
-    bucket = "momotaro-state-backend"
-    key    = "terraform.tfstate"
-    region = "ca-central-1"
-    encrypt = true
+    bucket         = "momotaro-state-backend"
+    key            = "terraform.tfstate"
+    region         = "ca-central-1"
+    encrypt        = true
     dynamodb_table = "Momotaro_State_Lock"
   }
 }
