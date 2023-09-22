@@ -406,10 +406,9 @@ resource "aws_lambda_function" "momotaro_function" {
 
   environment {
     variables = {
-      ITEM_PRICE_API_URL         = "https://i2xyv3lwk9.execute-api.ca-central-1.amazonaws.com/test/Momotaro/GetItemPrice"
-      MENU_ITEMS_API_URL         = "https://i2xyv3lwk9.execute-api.ca-central-1.amazonaws.com/test/Momotaro/GetMenuItems"
-      SAVE_CUSTOMER_INFO_API_URL = "https://i2xyv3lwk9.execute-api.ca-central-1.amazonaws.com/test/Momotaro/SaveCustomerInfo"
-      # Add other environment variables as needed
+      ITEM_PRICE_API_URL         = module.outputs.item_price_api_url
+      MENU_ITEMS_API_URL         = module.outputs.menu_items_api_url
+      SAVE_CUSTOMER_INFO_API_URL = module.outputs.save_customer_info_api_url
     }
   }
 
