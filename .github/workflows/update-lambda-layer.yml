@@ -35,6 +35,7 @@ jobs:
       - name: Uploading lambda function to S3
         run: |
           pwd
+          ls -l
       # Step 4: Initialize Terraform
       - name: Initialize Terraform
         run: |
