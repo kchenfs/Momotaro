@@ -287,7 +287,7 @@ def send_lex_response(app_id, origination_number, destination_number, messages):
 
 def handle_sns_message(event):
     sns_message = json.loads(event['Records'][0]['Sns']['Message'])
-    app_id = '0e3e20a71a2e42a29fd90cc63f461b1f'
+    app_id = os.environ['SNS_TOPIC_ID']
     origination_number = sns_message['destinationNumber']
     destination_number = sns_message['originationNumber']
     customer_message = sns_message['messageBody']

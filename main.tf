@@ -74,6 +74,22 @@ resource "aws_api_gateway_deployment" "momotaro_deployment" {
   }
 }
 
+output "item_price_api_invoke_url" {
+  value = aws_api_gateway_deployment.momotaro_deployment.invoke_url
+}
+
+output "menu_items_api_invoke_url" {
+  value = aws_api_gateway_deployment.momotaro_deployment.invoke_url
+}
+
+output "save_customer_info_api_invoke_url" {
+  value = aws_api_gateway_deployment.momotaro_deployment.invoke_url
+}
+
+
+
+
+
 
 
 resource "aws_api_gateway_resource" "momotaro" {
@@ -406,14 +422,17 @@ resource "aws_lambda_function" "momotaro_function" {
 
   environment {
     variables = {
-      ITEM_PRICE_API_URL         = module.outputs.item_price_api_url
-      MENU_ITEMS_API_URL         = module.outputs.menu_items_api_url
-      SAVE_CUSTOMER_INFO_API_URL = module.outputs.save_customer_info_api_url
+      ITEM_PRICE_API_URL         = "https://i2xyv3lwk9.execute-api.ca-central-1.amazonaws.com/test/Momotaro/GetItemPrice"
+      MENU_ITEMS_API_URL         = "https://i2xyv3lwk9.execute-api.ca-central-1.amazonaws.com/test/Momotaro/GetMenuItems"
+      SAVE_CUSTOMER_INFO_API_URL = "https://i2xyv3lwk9.execute-api.ca-central-1.amazonaws.com/test/Momotaro/SaveCustomerInfo"
+      SNS_TOPIC_ID               = aws_sns_topic.my_topic.id  # Add this line to reference the SNS topic ID
+      # Add other environment variables as needed
     }
   }
 
   # Other Lambda function configuration settings
 }
+
 
 
 
