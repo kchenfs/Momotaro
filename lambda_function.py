@@ -8,7 +8,7 @@ from rapidfuzz.process import extractOne
 import botocore.exceptions
 import datetime
 import requests
-
+import os
 "Print Helloworld"
 
 # AWS Clients
@@ -125,7 +125,7 @@ def generate_order_id(length=5):
 
 def get_item_price(item_name):
     # Define the API URL for fetching the price
-    api_url = "https://i2xyv3lwk9.execute-api.ca-central-1.amazonaws.com/test/Momotaro/GetItemPrice"
+    api_url = os.environ['ITEM_PRICE_API_URL']
     print(type(item_name))
     print(len(item_name))
     data = {
@@ -160,7 +160,7 @@ def get_item_names_from_menu_table():
     """
     
     # Define the API Gateway URL
-    api_url = "https://i2xyv3lwk9.execute-api.ca-central-1.amazonaws.com/test/Momotaro/GetMenuItems"
+    api_url = os.environ['MENU_ITEMS_API_URL']
 
     # Make a GET request to the API Gateway
     response = requests.get(api_url)
@@ -217,7 +217,7 @@ def save_customer_info(name, ordered_items, phone_number, pickup_time, total_pri
     }
 
     # Define the API Gateway URL
-    api_url = "https://i2xyv3lwk9.execute-api.ca-central-1.amazonaws.com/test/Momotaro/SaveCustomerInfo"
+    api_url = os.environ['SAVE_CUSTOMER_INFO_API_URL']
 
     # Make a POST request to the API Gateway
     response = requests.post(api_url, json=data)
