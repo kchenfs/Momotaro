@@ -41,8 +41,9 @@ jobs:
           zip lambda_artifacts/lambda_artifact.zip lambda_function.py
           aws s3 sync ./lambda_artifacts s3://momotaropackage/
           echo "Updating lambda function..."
-          aws lambda update-function-code --function-name "MomotaroCode"--s3-bucket "lambda_artifact.zip"
-          echo "lambda function successfully updated"
+          aws lambda update-function-code --function-name "MomotaroCode" --s3-bucket "momotaropackage" --s3-key "lambda_artifact.zip"
+          echo "Lambda function successfully updated"
+
       # Step 4: Initialize Terraform
       - name: Initialize Terraform
         run: |
