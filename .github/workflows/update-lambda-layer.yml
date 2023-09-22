@@ -18,21 +18,24 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Step 3: Build and Run generate-layer image
+      # Step 1: Build and Run generate-layer image
       - name: Build Lambda_Layer image
         run: |
           cd generate-layer/scripts/
           chmod +x runner.sh  # Ensure the script is executable
           ./runner.sh 
-        # You may need to log in to a Docker registry here
-      - name: Debug
+      # Step 2 You may need to log in to a Docker registry here
+      - name: Upload the layer package to S3
         run: |
           cd generate-layer/scripts/
           pwd
           ls -l
           aws s3 cp python.zip s3://momotaropackage/
-
-       # Step 1: Initialize Terraform
+      #Step 3: Upload the lambda_function.py file to S3 bucket
+      - name: Uploading lambda function to S3
+        run: |
+          pwd
+      # Step 4: Initialize Terraform
       - name: Initialize Terraform
         run: |
           terraform fmt

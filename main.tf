@@ -396,4 +396,31 @@ resource "aws_lambda_layer_version" "momotaro_layer" {
   s3_key    = "python.zip"  # Set the key to the filename "python.zip"
 }
 
-resource "aws_lambda_function" "Momotaro_Function" {
+resource "aws_lambda_function" "momotaro_function" {
+  function_name = "MomotaroCode"
+  handler      = "lambda_function.lambda_handler"
+  runtime      = "python3.11"
+  role         = "arn:aws:iam::798965869505:role/service-role/MomotaroFunction-role-7vrxdg4j"
+  s3_bucket =
+  s3_key = 
+
+  environment {
+    variables = {
+      ITEM_PRICE_API_URL     = "https://i2xyv3lwk9.execute-api.ca-central-1.amazonaws.com/test/Momotaro/GetItemPrice"
+      MENU_ITEMS_API_URL     = "https://i2xyv3lwk9.execute-api.ca-central-1.amazonaws.com/test/Momotaro/GetMenuItems"
+      SAVE_CUSTOMER_INFO_API_URL = "https://i2xyv3lwk9.execute-api.ca-central-1.amazonaws.com/test/Momotaro/SaveCustomerInfo"
+      # Add other environment variables as needed
+    }
+  }
+
+  # Other Lambda function configuration settings
+}
+
+
+
+
+resource "aws_cloudwatch_log_group" "momotaro_log_group" {
+  name = "/aws/lambda/MomotaroCode"
+
+}
+
