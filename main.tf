@@ -409,14 +409,14 @@ resource "aws_lambda_function" "momotaro_function" {
       MENU_ITEMS_API_URL         = "${aws_api_gateway_deployment.momotaro_deployment.invoke_url}/Momotaro/GetMenuItems/GET"
       SAVE_CUSTOMER_INFO_API_URL = "${aws_api_gateway_deployment.momotaro_deployment.invoke_url}/Momotaro/SaveCustomerInfo/POST"
       SNS_TOPIC_ID               = aws_sns_topic.my_topic.id # Add this line to reference the SNS topic ID
-
+      LEX_BOT_ID = IF1YEI2Z1K
+      LEX_ALIAS_ID = TSTALIASID
       # Add other environment variables as needed
     }
   }
 
   # Other Lambda function configuration settings
 }
-
 
 
 

@@ -9,7 +9,6 @@ import botocore.exceptions
 import datetime
 import requests
 import os
-"Print Helloworld"
 
 # AWS Clients
 dynamodb_client = boto3.client('dynamodb')
@@ -293,10 +292,10 @@ def handle_sns_message(event):
     customer_message = sns_message['messageBody']
     print(customer_message)
     lex_response = lex_client.recognize_text(
-        botId='IF1YEI2Z1K',
-        botAliasId='TSTALIASID',
-        localeId='en_US',
-        sessionId='user_id',
+        botId = os.environ['LEX_BOT_ID'],
+        botAliasId = os.environ['LEX_ALIAS_ID'],
+        localeId = 'en_US',
+        sessionId = 'user_id',
         text=customer_message
     )
 
