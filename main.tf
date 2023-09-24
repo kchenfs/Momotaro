@@ -27,10 +27,28 @@ resource "aws_pinpoint_app" "MomotaroPinpoint" {
   }
 }
 
+resource "aws_pinpoint_sms_channel" "pinpoint_sms_channel" {
+  application_id = aws_pinpoint_app.MomotaroPinpoint.application_id
+  enabled = true
+}
+
 
 resource "aws_sns_topic" "my_topic" {
   name = "MomotaroSNS"
 }
+
+resource "aws_sns_topic_subscription" "sns_lambda_trigger" {
+  topic_arn = aws_sns_topic.my_topic.arn
+  protocol  = "lambda"
+  endpoint  = aws_lambda_function.momotaro_function.arn
+}
+
+resource "aws_sns_topic_subscription" "sns_lambda_response" {
+  topic_arn = aws_sns_topic.my_topic.arn
+  protocol  = "email"
+  endpoint  = "kendxd@gmail.com"
+}
+
 
 resource "aws_ses_email_identity" "sender" {
   email = "kencfs@outlook.com"
@@ -405,10 +423,12 @@ resource "aws_lambda_function" "momotaro_function" {
 
   environment {
     variables = {
-      ITEM_PRICE_API_URL         = ${aws_api_gateway_deployment.momotaro_deployment.invoke_url}/Momotaro/GetItemPrice/GET"
+      ITEM_PRICE_API_URL         = "${aws_api_gateway_deployment.momotaro_deployment.invoke_url}/Momotaro/GetItemPrice/GET"
       MENU_ITEMS_API_URL         = "${aws_api_gateway_deployment.momotaro_deployment.invoke_url}/Momotaro/GetMenuItems/GET"
       SAVE_CUSTOMER_INFO_API_URL = "${aws_api_gateway_deployment.momotaro_deployment.invoke_url}/Momotaro/SaveCustomerInfo/POST"
       SNS_TOPIC_ID               = aws_sns_topic.my_topic.id # Add this line to reference the SNS topic ID
+      LEX_BOT_ID                 = "IF1YEI2Z1K"
+      LEX_ALIAS_ID               = "TSTALIASID"
       # Add other environment variables as needed
     }
   }
