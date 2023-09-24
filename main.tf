@@ -405,12 +405,10 @@ resource "aws_lambda_function" "momotaro_function" {
 
   environment {
     variables = {
-      ITEM_PRICE_API_URL         = "${aws_api_gateway_deployment.momotaro_deployment.invoke_url}/Momotaro/GetItemPrice/GET"
-      MENU_ITEMS_API_URL         = "${aws_api_gateway_deployment.momotaro_deployment.invoke_url}/Momotaro/GetMenuItems/GET"
-      SAVE_CUSTOMER_INFO_API_URL = "${aws_api_gateway_deployment.momotaro_deployment.invoke_url}/Momotaro/SaveCustomerInfo/POST"
+      ITEM_PRICE_API_URL         = module.momotaro.get_item_info_url
+      MENU_ITEMS_API_URL         = module.momotaro.get_menu_items_url
+      SAVE_CUSTOMER_INFO_API_URL = module.momotaro.save_customer_info_url
       SNS_TOPIC_ID               = aws_sns_topic.my_topic.id # Add this line to reference the SNS topic ID
-      LEX_BOT_ID = IF1YEI2Z1K
-      LEX_ALIAS_ID = TSTALIASID
       # Add other environment variables as needed
     }
   }
@@ -419,9 +417,10 @@ resource "aws_lambda_function" "momotaro_function" {
 }
 
 
+module "momotaro" {
+  source = "git::https://github.com/kchenfs/Momotaro.git"
 
-resource "aws_cloudwatch_log_group" "momotaro_log_group" {
-  name = "/aws/lambda/MomotaroCode"
-
+  # Other module configuration settings go here
 }
+
 
