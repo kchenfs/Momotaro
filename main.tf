@@ -29,7 +29,7 @@ resource "aws_pinpoint_app" "MomotaroPinpoint" {
 
 resource "aws_pinpoint_sms_channel" "pinpoint_sms_channel" {
   application_id = aws_pinpoint_app.MomotaroPinpoint.application_id
-  enabled = true
+  enabled        = true
 }
 
 
@@ -413,13 +413,19 @@ resource "aws_lambda_layer_version" "momotaro_layer" {
   s3_key    = "python.zip"      # Set the key to the filename "python.zip"
 }
 
+
+variable "lambda_function_name" {
+  default = "MomotaroCode"
+}
+
 resource "aws_lambda_function" "momotaro_function" {
-  function_name = "MomotaroCode"
+  function_name = var.lambda_function_name
   handler       = "lambda_function.lambda_handler"
   runtime       = "python3.11"
   role          = "arn:aws:iam::798965869505:role/service-role/MomotaroFunction-role-7vrxdg4j"
   s3_bucket     = "momotaropackage"
   s3_key        = "lambda_artifact.zip"
+  layers        = [aws_lambda_layer_version.momotaro_layer.arn]
 
   environment {
     variables = {
@@ -435,3 +441,7 @@ resource "aws_lambda_function" "momotaro_function" {
 }
 
 
+resource "aws_cloudwatch_log_group" "momotaro_code_lambda_log_group" {
+  name              = "/aws/lambda/${var.lambda_function_name}" # Replace with your Lambda function name
+  retention_in_days = 5                                         # Adjust retention period as needed
+}
