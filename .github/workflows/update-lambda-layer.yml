@@ -40,6 +40,7 @@ jobs:
           mkdir lambda_artifacts
           zip lambda_artifacts/lambda_artifact.zip lambda_function.py
           aws s3 sync ./lambda_artifacts s3://momotaropackage/
+       
       #step 4: Update the layer packages and lambda function
       - name: updating lambda and layers from s3
         run: |
@@ -48,7 +49,7 @@ jobs:
           echo "Updating lambda function..."
           aws lambda update-function-code --function-name "MomotaroCode" --s3-bucket "momotaropackage" --s3-key "lambda_artifact.zip"
           echo "Lambda function successfully updated"
-          aws publish-layer-version --momotaro_layer --s3-bucket = "momotaropackage" --s3 key "python.zip"
+          aws lambda publish-layer-version --layer-name "momotaro_layer" --description "Your description here" --content S3Bucket=momotaropackage,S3Key=python.zip
           echo "Lambda layer successfully updated"
                 
       # Step 4: Initialize Terraform
