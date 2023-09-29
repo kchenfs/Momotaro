@@ -30,7 +30,7 @@ jobs:
           cd generate-layer/scripts/
           pwd
           ls -l
-          aws s3 sync python.zip s3://momotaropackage/
+          aws s3 cp python.zip s3://momotaropackage/
       #Step 3: Upload the lambda_function.py file to S3 bucket
       - name: Uploading lambda function to S3
         run: |
