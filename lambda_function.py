@@ -205,7 +205,7 @@ def format_ordered_items(parsed_items):
 def save_customer_info(name, ordered_items, phone_number, pickup_time, total_price_with_tax):
     order_id = generate_order_id(5)
     print("save_customer_info", total_price_with_tax)
-
+    order_date = datetime.datetime.now().isoformat()
     # Construct the request body
     data = {
         "order_id": order_id,
@@ -213,8 +213,10 @@ def save_customer_info(name, ordered_items, phone_number, pickup_time, total_pri
         "ordered_items": ordered_items,
         "phone_number": phone_number,
         "pickup_time": pickup_time,
-        "total_price_with_tax": total_price_with_tax
+        "total_price_with_tax": total_price_with_tax,
+        "order_date": order_date  # Add the order date
     }
+
 
     # Define the API Gateway URL
     api_url = os.environ['SAVE_CUSTOMER_INFO_API_URL']

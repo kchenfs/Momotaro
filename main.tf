@@ -294,36 +294,33 @@ resource "aws_api_gateway_integration" "save_customer_info_integration" {
   uri                     = "arn:aws:apigateway:ca-central-1:dynamodb:action/PutItem"
   credentials             = "arn:aws:iam::798965869505:role/MomotaroAPIGateway"
 
-  # Request Templates for Mapping
-  request_templates = {
-    # Define your custom template
-    "application/json" = <<EOF
-    {
-      #set(\$inputRoot = \$input.path('\$'))
-      "TableName": "MomotaroSushi_DB",
-      "Item": {
-        "OrderID": {
-          "S": "\$inputRoot.order_id"
-        },
-        "CustomerName": {
-          "S": "\$inputRoot.name"
-        },
-        "CustomerOrder": {
-          "S": "\$inputRoot.ordered_items"
-        },
-        "PhoneNumber": {
-          "S": "\$inputRoot.phone_number"
-        },
-        "PickUpTime": {
-          "S": "\$inputRoot.pickup_time"
-        },
-        "TotalPrice": {
-          "S": "\$inputRoot.total_price_with_tax"
-        }
+
+# Request Templates for Mapping
+request_templates = {
+  "application/json" = jsonencode({
+    TableName = "MomotaroSushi_DB",
+    Item = {
+      OrderID = {
+        S = "$util.escapeJavaScript($input.path('$.order_id'))"
+      },
+      CustomerName = {
+        S = "$util.escapeJavaScript($input.path('$.name'))"
+      },
+      CustomerOrder = {
+        S = "$util.escapeJavaScript($input.path('$.ordered_items'))"
+      },
+      PhoneNumber = {
+        S = "$util.escapeJavaScript($input.path('$.phone_number'))"
+      },
+      PickUpTime = {
+        S = "$util.escapeJavaScript($input.path('$.pickup_time'))"
+      },
+      TotalPrice = {
+        S = "$util.escapeJavaScript($input.path('$.total_price_with_tax'))"
       }
     }
-    EOF
-  }
+  })
+}
 
   # Request Parameters for Mapping
   request_parameters = {
@@ -430,9 +427,9 @@ resource "aws_lambda_function" "momotaro_function" {
 
   environment {
     variables = {
-      ITEM_PRICE_API_URL         = "${aws_api_gateway_deployment.momotaro_deployment.invoke_url}test/Momotaro/GetItemPrice/GET"
-      MENU_ITEMS_API_URL         = "${aws_api_gateway_deployment.momotaro_deployment.invoke_url}test/Momotaro/GetMenuItems/GET"
-      SAVE_CUSTOMER_INFO_API_URL = "${aws_api_gateway_deployment.momotaro_deployment.invoke_url}test/Momotaro/SaveCustomerInfo/POST"
+      ITEM_PRICE_API_URL         = "${aws_api_gateway_deployment.momotaro_deployment.invoke_url}test/Momotaro/GetItemPrice/"
+      MENU_ITEMS_API_URL         = "${aws_api_gateway_deployment.momotaro_deployment.invoke_url}test/Momotaro/GetMenuItems/"
+      SAVE_CUSTOMER_INFO_API_URL = "${aws_api_gateway_deployment.momotaro_deployment.invoke_url}test/Momotaro/SaveCustomerInfo/"
       SNS_TOPIC_ID               = aws_sns_topic.my_topic.id # Add this line to reference the SNS topic ID
       LEX_BOT_ID                 = "IF1YEI2Z1K"
       LEX_ALIAS_ID               = "TSTALIASID"
