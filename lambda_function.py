@@ -159,7 +159,7 @@ def get_item_names_from_menu_table():
     """
     
     # Define the API Gateway URL
-    api_url = os.environ[MENU_ITEMS_API_URL]
+    api_url = os.environ['MENU_ITEMS_API_URL']
     print("MENU_ITEMS_API_URL:", os.environ['MENU_ITEMS_API_URL'])
 
     # Make a GET request to the API Gateway
