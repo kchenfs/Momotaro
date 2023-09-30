@@ -409,13 +409,12 @@ resource "aws_lambda_layer_version" "momotaro_layer" {
   description         = "My Lambda Layer"
   compatible_runtimes = ["python3.11"]
 
-  s3_bucket = "momotaropackage" # Replace with your S3 bucket name
-  s3_key    = "python.zip"      # Set the key to the filename "python.zip"
+  s3_bucket = "momotaropackage"  # Replace with your S3 bucket name
+  s3_key    = "python.zip"       # Use the actual filename "python.zip"
 }
 
-
-variable "lambda_function_name" {
-  default = "MomotaroCode"
+data "aws_lambda_layer_version" "latest_momotaro_layer" {
+  layer_name = aws_lambda_layer_version.momotaro_layer.layer_name
 }
 
 resource "aws_lambda_function" "momotaro_function" {
@@ -425,7 +424,7 @@ resource "aws_lambda_function" "momotaro_function" {
   role          = "arn:aws:iam::798965869505:role/service-role/MomotaroFunction-role-7vrxdg4j"
   s3_bucket     = "momotaropackage"
   s3_key        = "lambda_artifact.zip"
-  layers        = [aws_lambda_layer_version.momotaro_layer.arn]
+  layers        = [data.aws_lambda_layer_version.latest_momotaro_layer.arn]
 
   environment {
     variables = {
@@ -444,4 +443,8 @@ resource "aws_lambda_function" "momotaro_function" {
 resource "aws_cloudwatch_log_group" "momotaro_code_lambda_log_group" {
   name              = "/aws/lambda/${var.lambda_function_name}" # Replace with your Lambda function name
   retention_in_days = 5                                         # Adjust retention period as needed
+}
+
+variable "lambda_function_name" {
+  default = "MomotaroCode"
 }

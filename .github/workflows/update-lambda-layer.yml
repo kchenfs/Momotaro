@@ -49,11 +49,6 @@ jobs:
           echo "Updating lambda function..."
           aws lambda update-function-code --function-name "MomotaroCode" --s3-bucket "momotaropackage" --s3-key "lambda_artifact.zip"
           echo "Lambda function successfully updated"
-          echo "Updating lambda layer"
-          ...
-          aws lambda update-function-configuration --function-name "MomotaroCode" \
-          --layers "arn:aws:lambda:ca-central-1:${{ secrets.AWS_ACCOUNT_ID }}:layer:momotaro-layer:*"
-          echo "Lambda layer successfully updated"
                 
       # Step 5: Initialize Terraform
       - name: Initialize Terraform
