@@ -159,7 +159,7 @@ def get_item_names_from_menu_table():
     """
     
     # Define the API Gateway URL
-    api_url = os.environ['MENU_ITEMS_API_URL']
+    api_url = "https://i2xyv3lwk9.execute-api.ca-central-1.amazonaws.com/test/Momotaro/GetMenuItems"
 
     # Make a GET request to the API Gateway
     response = requests.get(api_url)

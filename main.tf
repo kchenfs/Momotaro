@@ -409,8 +409,8 @@ resource "aws_lambda_layer_version" "momotaro_layer" {
   description         = "My Lambda Layer"
   compatible_runtimes = ["python3.11"]
 
-  s3_bucket = "momotaropackage"  # Replace with your S3 bucket name
-  s3_key    = "python.zip"       # Use the actual filename "python.zip"
+  s3_bucket = "momotaropackage" # Replace with your S3 bucket name
+  s3_key    = "python.zip"      # Use the actual filename "python.zip"
 }
 
 data "aws_lambda_layer_version" "latest_momotaro_layer" {
@@ -422,15 +422,17 @@ resource "aws_lambda_function" "momotaro_function" {
   handler       = "lambda_function.lambda_handler"
   runtime       = "python3.11"
   role          = "arn:aws:iam::798965869505:role/service-role/MomotaroFunction-role-7vrxdg4j"
+  timeout       = 10
+  memory_size   = 3008
   s3_bucket     = "momotaropackage"
   s3_key        = "lambda_artifact.zip"
   layers        = [data.aws_lambda_layer_version.latest_momotaro_layer.arn]
 
   environment {
     variables = {
-      ITEM_PRICE_API_URL         = "${aws_api_gateway_deployment.momotaro_deployment.invoke_url}/Momotaro/GetItemPrice/GET"
-      MENU_ITEMS_API_URL         = "${aws_api_gateway_deployment.momotaro_deployment.invoke_url}/Momotaro/GetMenuItems/GET"
-      SAVE_CUSTOMER_INFO_API_URL = "${aws_api_gateway_deployment.momotaro_deployment.invoke_url}/Momotaro/SaveCustomerInfo/POST"
+      ITEM_PRICE_API_URL         = "${aws_api_gateway_deployment.momotaro_deployment.invoke_url}/test/Momotaro/GetItemPrice/GET"
+      MENU_ITEMS_API_URL         = "${aws_api_gateway_deployment.momotaro_deployment.invoke_url}/test/Momotaro/GetMenuItems/GET"
+      SAVE_CUSTOMER_INFO_API_URL = "${aws_api_gateway_deployment.momotaro_deployment.invoke_url}/test/Momotaro/SaveCustomerInfo/POST"
       SNS_TOPIC_ID               = aws_sns_topic.my_topic.id # Add this line to reference the SNS topic ID
       LEX_BOT_ID                 = "IF1YEI2Z1K"
       LEX_ALIAS_ID               = "TSTALIASID"
