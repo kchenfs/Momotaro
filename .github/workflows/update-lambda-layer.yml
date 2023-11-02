@@ -40,7 +40,7 @@ jobs:
           mkdir lambda_artifacts
           zip lambda_artifacts/lambda_artifact.zip lambda_function.py
           aws s3 sync ./lambda_artifacts s3://momotaropackage/
-       
+          
       #step 4: Update the layer packages and lambda function
       - name: updating lambda and layers from s3
         run: |

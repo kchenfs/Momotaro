@@ -295,34 +295,35 @@ resource "aws_api_gateway_integration" "save_customer_info_integration" {
   credentials             = "arn:aws:iam::798965869505:role/MomotaroAPIGateway"
 
 
-# Request Templates for Mapping
-request_templates = {
-  "application/json" = jsonencode({
-    TableName = "MomotaroSushi_DB",
-    Item = {
-      OrderID = {
-        S = "$util.escapeJavaScript($input.path('$.order_id'))"
-      },
-      CustomerName = {
-        S = "$util.escapeJavaScript($input.path('$.name'))"
-      },
-      CustomerOrder = {
-        S = "$util.escapeJavaScript($input.path('$.ordered_items'))"
-      },
-      PhoneNumber = {
-        S = "$util.escapeJavaScript($input.path('$.phone_number'))"
-      },
-      PickUpTime = {
-        S = "$util.escapeJavaScript($input.path('$.pickup_time'))"
-      },
-      TotalPrice = {
-        S = "$util.escapeJavaScript($input.path('$.total_price_with_tax'))"
+ request_templates = {
+    "application/json" = jsonencode({
+      TableName = "MomotaroSushi_DB",
+      Item = {
+        OrderID = {
+          S = "$util.escapeJavaScript($input.path('$.order_id'))"
+        },
+        CustomerName = {
+          S = "$util.escapeJavaScript($input.path('$.name'))"
+        },
+        CustomerOrder = {
+          S = "$util.escapeJavaScript($input.path('$.ordered_items'))"
+        },
+        PhoneNumber = {
+          S = "$util.escapeJavaScript($input.path('$.phone_number'))"
+        },
+        PickUpTime = {
+          S = "$util.escapeJavaScript($input.path('$.pickup_time'))"
+        },
+        TotalPrice = {
+          S = "$util.escapeJavaScript($input.path('$.total_price_with_tax'))"
+        },
+        OrderDate = {
+          S = "$util.escapeJavaScript($input.path('$.order_date'))"
+        }
       }
-    }
-  })
-}
+    })
+  }
 
-  # Request Parameters for Mapping
   request_parameters = {
     "integration.request.header.Content-Type" = "'application/json'"
   }
