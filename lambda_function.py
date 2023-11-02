@@ -9,6 +9,9 @@ import botocore.exceptions
 import datetime
 import requests
 import os
+import stripe
+
+
 
 # AWS Clients
 dynamodb_client = boto3.client('dynamodb')
@@ -17,6 +20,8 @@ pinpoint_client = boto3.client('pinpoint')
 ses_client = boto3.client('ses')
 #spacy language model
 nlp = spacy.load("en_core_web_sm")
+#stripe
+stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
 # Constants
 tax_rate = 0.13 
 
@@ -363,12 +368,28 @@ def send_email(sender_email, customer_email, subject, body):
         print("Error sending email:", e)
 
 
+def create_payment_intent(total_amount, customer_email):
+    try:
+        intent = stripe.PaymentIntent.create(
+            amount=int(total_amount * 100),  # Amount in cents
+            currency='usd',
+            description='Order payment',
+            receipt_email=customer_email,
+        )
+        return intent.client_secret
+    except stripe.error.StripeError as e:
+        # Handle errors here
+        return None
+
+
+
+
+
 def lambda_handler(event, context):
     print("top of the tree in the lambda handler")
     session_attributes = event.get('sessionState', {}).get('sessionAttributes', {})
     print(context)
     if 'Records' in event:
-        response = None
         handle_sns_message(event)
 
         # Handle other SNS message-related operations as needed
@@ -376,7 +397,6 @@ def lambda_handler(event, context):
     else:
         slots = event['sessionState']['intent']['slots']
         intent = event['sessionState']['intent']['name']
-        response = None
         print("the global access for intent", intent)
         if intent == 'Greeting':
             response = {
@@ -551,7 +571,6 @@ def lambda_handler(event, context):
            
             print("this is in the OrderItem block", session_attributes)
             validation_result = validate(slots)
-            response = None  # Initialize response variable
             confirmation_state = event['interpretations'][0]['intent']['confirmationState']
 
             if confirmation_state == 'Confirmed':

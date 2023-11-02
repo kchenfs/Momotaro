@@ -434,10 +434,18 @@ resource "aws_lambda_function" "momotaro_function" {
       SNS_TOPIC_ID               = aws_sns_topic.my_topic.id # Add this line to reference the SNS topic ID
       LEX_BOT_ID                 = "IF1YEI2Z1K"
       LEX_ALIAS_ID               = "TSTALIASID"
+      STRIPE_SECRET_KEY          = data.aws_ssm_parameter.stripe_secret_key.value
+
       # Add other environment variables as needed
     }
   }
 }
+
+
+data "aws_ssm_parameter" "stripe_secret_key" {
+  name = "StripeSecretKey"
+}
+
 
 
 resource "aws_cloudwatch_log_group" "momotaro_code_lambda_log_group" {
