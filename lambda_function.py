@@ -446,7 +446,6 @@ def lambda_handler(event, context):
         
         elif intent == 'OrderItem':
            
-            print("this is in the OrderItem block", session_attributes)
             validation_result = validate(slots)
             confirmation_state = event['interpretations'][0]['intent']['confirmationState']
 
