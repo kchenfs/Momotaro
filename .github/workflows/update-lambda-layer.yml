@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v2
 
       # Step 1: Build and Run generate-layer image
-      - name: Build Lambda_Layer image
+      - name: Build Lambda_Layer through the docker image
         run: |
           cd generate-layer/scripts/
           chmod +x runner.sh  # Ensure the script is executable
@@ -42,13 +42,23 @@ jobs:
           aws s3 sync ./lambda_artifacts s3://momotaropackage/
           
       #step 4: Update the layer packages and lambda function
-      - name: updating lambda and layers from s3
+      - name: updating lambda handler from s3
         run: |
           pwd
           ls -l
           echo "Updating lambda function..."
           aws lambda update-function-code --function-name "MomotaroCode" --s3-bucket "momotaropackage" --s3-key "lambda_artifact.zip"
           echo "Lambda function successfully updated"
+     
+      #step 5: Update the layer packages and lambda function
+      - name: updating layer from s3
+        run: |
+          pwd
+          ls -l
+          echo "Updating layers..."
+          publish-layer-version --layer-name "momotaro-layer" --zip-file "python.zip" --compatible-runtimes "python3.11"
+          echo "Lambda function successfully updated"
+                
                 
       # Step 5: Initialize Terraform
       - name: Initialize Terraform
