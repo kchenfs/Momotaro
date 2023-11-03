@@ -24,14 +24,8 @@ jobs:
           cd generate-layer/scripts/
           chmod +x runner.sh  # Ensure the script is executable
           ./runner.sh 
-      # Step 2 You may need to log in to a Docker registry here
-      - name: Upload the layer package to S3
-        run: |
-          cd generate-layer/scripts/
-          pwd
-          ls -l
-          aws s3 cp python.zip s3://momotaropackage/
-      #Step 3: Upload the lambda_function.py file to S3 bucket
+      
+          #Step 3: Upload the lambda_function.py file to S3 bucket
       - name: Uploading lambda function to S3
         run: |
           pwd
@@ -55,10 +49,20 @@ jobs:
         run: |
           pwd
           ls -l
-          echo "Updating layers..."
-          publish-layer-version --layer-name "momotaro-layer" --zip-file "python.zip" --compatible-runtimes "python3.11"
+          echo "pushing latest layers package..."
+          aws publish-layer-version --layer-name "momotaro-layer" --zip-file "python.zip" --compatible-runtimes "python3.11"
           echo "Lambda function successfully updated"
-                
+
+           
+      #step 6: Update the layer with the latest package
+      - name: updating layer from s3
+        run: |
+          pwd
+          ls -l
+          echo "Updating layers..."
+          aws update-layer
+          echo "Lambda function successfully updated"
+                  
                 
       # Step 5: Initialize Terraform
       - name: Initialize Terraform
