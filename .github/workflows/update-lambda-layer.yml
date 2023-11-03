@@ -50,7 +50,7 @@ jobs:
           pwd
           ls -l
           echo "pushing latest layers package..."
-          aws lambda update-function-configuration --function-name MomotaroCode --layers "arn:aws:lambda:ca-central-1:798965869505:layer:momotaro-layer:latest"
+          aws lambda publish-layer-version --layer-name "momotaro-layer" --content '{"S3Bucket":"momotaropackage","S3Key":"python.zip","S3ObjectVersion":"null"}' --compatible-runtimes "python3.11"
           echo "Lambda function successfully updated"
 
       #step 6: Update the layer with the latest package
@@ -59,7 +59,7 @@ jobs:
           pwd
           ls -l
           echo "Updating layers..."
-          aws lambda update-function-configuration --function-name MomotaroCode --Layers
+          aws lambda update-function-configuration --function-name MomotaroCode --layers "arn:aws:lambda:your-region:your-account-id:layer/layer-name:latest"
           echo "Lambda function successfully updated"   
                   
                 
