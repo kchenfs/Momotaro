@@ -50,7 +50,7 @@ jobs:
           pwd
           ls -l
           echo "pushing latest layers package..."
-          aws publish-layer-version --layer-name "momotaro-layer" --zip-file "python.zip" --compatible-runtimes "python3.11"
+          aws lambda publish-layer-version --layer-name "momotaro-layer" --zip-file "python.zip" --compatible-runtimes "python3.11"
           echo "Lambda function successfully updated"
 
            
