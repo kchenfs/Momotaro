@@ -384,6 +384,7 @@ def create_payment_intent(total_amount, customer_email):
 
 def lambda_handler(event, context):
     print("top of the tree in the lambda handler")
+    print(event)
     print(context)
     if 'Records' in event:
         handle_sns_message(event)
