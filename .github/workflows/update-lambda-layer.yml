@@ -59,7 +59,7 @@ jobs:
           pwd
           ls -l
           echo "Updating layers..."
-          aws lambda update-function-configuration --function-name MomotaroCode --layers "arn:aws:lambda:your-region:your-account-id:layer/layer-name:latest"
+          aws lambda update-function-configuration --function-name MomotaroCode --layers "arn:aws:lambda:your-region:your-account-id:layer/layer-name"
           echo "Lambda function successfully updated"   
                   
                 
