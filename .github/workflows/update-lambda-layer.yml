@@ -44,24 +44,23 @@ jobs:
           aws lambda update-function-code --function-name "MomotaroCode" --s3-bucket "momotaropackage" --s3-key "lambda_artifact.zip"
           echo "Lambda function successfully updated"
      
-      #step 5: Update the layer packages and lambda function
+      #step 5: Upion
       - name: updating layer from s3
         run: |
           pwd
           ls -l
           echo "pushing latest layers package..."
-          aws lambda publish-layer-version --layer-name "momotaro-layer" --zip-file "python.zip" --compatible-runtimes "python3.11"
+          aws lambda update-function-configuration --function-name MomotaroCode --layers "arn:aws:lambda:ca-central-1:798965869505:layer:momotaro-layer:latest"
           echo "Lambda function successfully updated"
 
-           
       #step 6: Update the layer with the latest package
-      - name: updating layer from s3
+      - name: updating lambda configuration
         run: |
           pwd
           ls -l
           echo "Updating layers..."
-          aws update-layer
-          echo "Lambda function successfully updated"
+          aws lambda update-function-configuration --function-name MomotaroCode --Layers
+          echo "Lambda function successfully updated"   
                   
                 
       # Step 5: Initialize Terraform
