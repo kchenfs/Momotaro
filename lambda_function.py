@@ -101,6 +101,24 @@ def extract_items_and_quantities(ordered_items):
     print("item:", item)
     return combined_list
 
+def find_closest_match(item_name, menu_items):
+    """
+    Find the closest match for the given item name in the list of menu items.
+
+    Args:
+        item_name (str): The item name extracted from the customer's input.
+        menu_items (list): List of item names from the DynamoDB menu table.
+
+    Returns:
+        str: The closest matching item name from the menu_items list.
+    """
+    match, score, _ = extractOne(item_name, menu_items)
+    print('the customer ordered the following items', item_name)
+    print('this is the closest match in our database', match)
+    print('this is the confidence score', score)
+    return match if score >= 80 else None
+
+
 def parse_ordered_items(combined_list, menu_items):
     print("Before we apply the fuzzy matching", combined_list)
     parsed_items = []
@@ -120,6 +138,10 @@ def parse_ordered_items(combined_list, menu_items):
     print("Parsed Items:", parsed_items)
     return parsed_items
 
+def format_ordered_items(parsed_items):
+    formatted_items = [f"{quantity} {item}" for item, quantity in parsed_items]
+    formatted_string = ", ".join(formatted_items)
+    return formatted_string
 
 def generate_order_id(length=5):
     characters = string.ascii_letters + string.digits
@@ -182,31 +204,6 @@ def get_item_names_from_menu_table():
         return None
 
 
-def find_closest_match(item_name, menu_items):
-    """
-    Find the closest match for the given item name in the list of menu items.
-
-    Args:
-        item_name (str): The item name extracted from the customer's input.
-        menu_items (list): List of item names from the DynamoDB menu table.
-
-    Returns:
-        str: The closest matching item name from the menu_items list.
-    """
-    match, score, _ = extractOne(item_name, menu_items)
-    print('the customer ordered the following items', item_name)
-    print('this is the closest match in our database', match)
-    print('this is the confidence score', score)
-    return match if score >= 80 else None
-
-
-
-def format_ordered_items(parsed_items):
-    formatted_items = [f"{quantity} {item}" for item, quantity in parsed_items]
-    formatted_string = ", ".join(formatted_items)
-    return formatted_string
-
-
 def save_customer_info(name, ordered_items, phone_number, pickup_time, total_price_with_tax):
     order_id = generate_order_id(5)
     print("save_customer_info", total_price_with_tax)
@@ -236,6 +233,33 @@ def save_customer_info(name, ordered_items, phone_number, pickup_time, total_pri
         print('Failed to save the info using the API')
         return None
 
+
+def generate_receipt(order_date, order_id, customer_name, customer_phone, ordered_items,
+                     subtotal_price, tax_amount, total, pickup_time):
+    """
+    Generate the receipt content based on the provided order details.
+
+    Args:
+        order_date (str): Date of the order.
+        order_id (str): Order ID.
+        customer_name (str): Customer's name.
+        customer_phone (str): Customer's phone number.
+        ordered_items (str): String representation of ordered items.
+        subtotal (str): Subtotal amount.
+        tax (str): Tax amount.
+        total (str): Total amount.
+        pickup_time (str): Pickup time.
+
+    Returns:
+        str: Receipt content.
+    """
+    formatted_order_date = order_date.strftime('%Y-%m-%d %H:%M')
+
+    receipt_content = receipt_template.format(
+        formatted_order_date, order_id, customer_name, customer_phone,
+        ordered_items, subtotal_price, tax_amount, total, pickup_time
+    )
+    return receipt_content
 
 def confirm_intent(intent, slots, name, ordered_items, pickup_time, phone_number):
     confirmation_prompt = (
@@ -317,33 +341,6 @@ def handle_sns_message(event):
     return lex_response
 
 
-def generate_receipt(order_date, order_id, customer_name, customer_phone, ordered_items,
-                     subtotal_price, tax_amount, total, pickup_time):
-    """
-    Generate the receipt content based on the provided order details.
-
-    Args:
-        order_date (str): Date of the order.
-        order_id (str): Order ID.
-        customer_name (str): Customer's name.
-        customer_phone (str): Customer's phone number.
-        ordered_items (str): String representation of ordered items.
-        subtotal (str): Subtotal amount.
-        tax (str): Tax amount.
-        total (str): Total amount.
-        pickup_time (str): Pickup time.
-
-    Returns:
-        str: Receipt content.
-    """
-    formatted_order_date = order_date.strftime('%Y-%m-%d %H:%M')
-
-    receipt_content = receipt_template.format(
-        formatted_order_date, order_id, customer_name, customer_phone,
-        ordered_items, subtotal_price, tax_amount, total, pickup_time
-    )
-    return receipt_content
-
 
 def send_email(sender_email, customer_email, subject, body):
     try:
@@ -388,6 +385,7 @@ def create_payment_intent(total_amount, customer_email):
 def lambda_handler(event, context):
     print("top of the tree in the lambda handler")
     session_attributes = event.get('sessionState', {}).get('sessionAttributes', {})
+    print(session_attributes)
     print(context)
     if 'Records' in event:
         handle_sns_message(event)
