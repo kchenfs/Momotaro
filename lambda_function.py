@@ -384,8 +384,6 @@ def create_payment_intent(total_amount, customer_email):
 
 def lambda_handler(event, context):
     print("top of the tree in the lambda handler")
-    session_attributes = event.get('sessionState', {}).get('sessionAttributes', {})
-    print("session attributes", session_attributes)
     print(context)
     if 'Records' in event:
         handle_sns_message(event)
@@ -396,6 +394,7 @@ def lambda_handler(event, context):
         slots = event['sessionState']['intent']['slots']
         intent = event['sessionState']['intent']['name']
         print("the global access for intent", intent)
+        
         if intent == 'Greeting':
             response = {
                 'sessionState': {
@@ -442,127 +441,7 @@ def lambda_handler(event, context):
                     }
                 ]
             }
-        elif intent == 'EmailReceiptIntent':
-            receipt_confirmation = slots.get('ReceiptConfirmation', {}).get('value', {}).get('interpretedValue', '').lower()
-            email_slot = slots.get('CustomerEmail')
 
-            if not email_slot and receipt_confirmation == 'yes':  # If email_slot is empty, elicit the CustomerEmail slot and the customer says yes to a receipt
-                response = {
-                    'sessionState': {
-                        'dialogAction': {
-                            'type': 'ElicitSlot',
-                            'slotToElicit': 'CustomerEmail'
-                        },
-                        'intent': {
-                            'name': 'EmailReceiptIntent',
-                            'slots': slots
-                        }
-                    },
-                    'messages': [
-                        {
-                            'contentType': 'PlainText',
-                            'content': 'Please provide the email address you would like to send the receipt to.'
-                        }
-                    ]
-                }
-            elif receipt_confirmation == 'yes':
-
-                    email_slot = slots.get('CustomerEmail')
-                    print("receipt confirmation is 'yes'.")
-                    customer_email = email_slot['value']['interpretedValue']
-                    sender_email = 'kencfs@outlook.com'  # Replace with your SES sender email
-                    subject = 'Momotaro Sushi - Order Receipt'
-
-                    name = session_attributes['CustomerName']
-                    ordered_items = session_attributes['ItemChoice']
-                    phone_number = session_attributes['PhoneNumber']
-                    pickup_time = session_attributes['OrderPickUpTime']
-                    order_id = session_attributes['OrderId']
-                    subtotal_price = session_attributes['BillSubtotal']
-                    tax_amount = session_attributes['BillTaxAmount']
-                    total_price_with_tax = session_attributes['BillTotal']
-                    print(session_attributes)
-                                
-                    
-                    # Generate the receipt content
-                    receipt_content = generate_receipt(
-                        order_date=(datetime.datetime.now()),
-                        order_id=order_id,
-                        customer_name=name,
-                        customer_phone=phone_number,
-                        ordered_items=ordered_items,
-                        subtotal_price=subtotal_price,
-                        tax_amount=tax_amount,
-                        total=total_price_with_tax,
-                        pickup_time=pickup_time
-                    )
-
-                    # Send email using Amazon SES
-                    send_email(sender_email, customer_email, subject, receipt_content)
-                    
-                    # Modify Lex's response to include the receipt hyperlink
-                    receipt_message = (
-   "The receipt has been sent to your email."
-)
-
-                    response = {
-                        'sessionState': {
-                            'dialogAction': {
-                                'type': 'Close'
-                            },
-                            'intent': {
-                                'name': intent,
-                                'slots': slots,
-                                'state': 'Fulfilled'
-                            }
-                        },
-                        'messages': [
-                            {
-                                'contentType': 'PlainText',
-                                'content': receipt_message
-                            }
-                        ]
-                    }
-
-            elif not email_slot and receipt_confirmation == 'no':
-                print("Receipt confirmation is 'no'.")
-                response = {
-                    'sessionState': {
-                        'dialogAction': {
-                            'type': 'Close'
-                        },
-                        'intent': {
-                            'name': intent,
-                            'slots': slots,
-                            'state': 'Fulfilled'
-                        }
-                    },
-                    'messages': [
-                        {
-                            'contentType': 'PlainText',
-                            'content': 'Alright. Your order has been confirmed. Thank you for choosing us!'
-                        }
-                    ]
-                }
-            else:
-                print("Receipt confirmation is neither 'yes' nor 'no'. Eliciting the FallbackIntent.")
-                response = {
-                    'sessionState': {
-                        'dialogAction': {
-                            'type': 'ElicitIntent'
-                        },
-                        'intent': {
-                            'name': 'FallbackIntent',
-                            'state': 'Fulfilled'
-                        }
-                    },
-                    'messages': [
-                        {
-                            'contentType': 'PlainText',
-                            'content': "Sorry, I didn't understand your response. Please type 'start over' to restart the ordering process."
-                        }
-                    ]
-                }
                             
         
         elif intent == 'OrderItem':
@@ -711,6 +590,129 @@ def lambda_handler(event, context):
                             }
                         ]
                     }
+                
+
+        elif intent == 'EmailReceiptIntent':
+            receipt_confirmation = slots.get('ReceiptConfirmation', {}).get('value', {}).get('interpretedValue', '').lower()
+            email_slot = slots.get('CustomerEmail')
+
+            if not email_slot and receipt_confirmation == 'yes':  # If email_slot is empty, elicit the CustomerEmail slot and the customer says yes to a receipt
+                response = {
+                    'sessionState': {
+                        'dialogAction': {
+                            'type': 'ElicitSlot',
+                            'slotToElicit': 'CustomerEmail'
+                        },
+                        'intent': {
+                            'name': 'EmailReceiptIntent',
+                            'slots': slots
+                        }
+                    },
+                    'messages': [
+                        {
+                            'contentType': 'PlainText',
+                            'content': 'Please provide the email address you would like to send the receipt to.'
+                        }
+                    ]
+                }
+            elif receipt_confirmation == 'yes':
+
+                    email_slot = slots.get('CustomerEmail')
+                    print("receipt confirmation is 'yes'.")
+                    customer_email = email_slot['value']['interpretedValue']
+                    sender_email = 'kencfs@outlook.com'  # Replace with your SES sender email
+                    subject = 'Momotaro Sushi - Order Receipt'
+
+                    name = session_attributes['CustomerName']
+                    ordered_items = session_attributes['ItemChoice']
+                    phone_number = session_attributes['PhoneNumber']
+                    pickup_time = session_attributes['OrderPickUpTime']
+                    order_id = session_attributes['OrderId']
+                    subtotal_price = session_attributes['BillSubtotal']
+                    tax_amount = session_attributes['BillTaxAmount']
+                    total_price_with_tax = session_attributes['BillTotal']
+                    print(session_attributes)
+                                
+                    
+                    # Generate the receipt content
+                    receipt_content = generate_receipt(
+                        order_date=(datetime.datetime.now()),
+                        order_id=order_id,
+                        customer_name=name,
+                        customer_phone=phone_number,
+                        ordered_items=ordered_items,
+                        subtotal_price=subtotal_price,
+                        tax_amount=tax_amount,
+                        total=total_price_with_tax,
+                        pickup_time=pickup_time
+                    )
+
+                    # Send email using Amazon SES
+                    send_email(sender_email, customer_email, subject, receipt_content)
+                    
+                    # Modify Lex's response to include the receipt hyperlink
+                    receipt_message = (
+                    "The receipt has been sent to your email."
+                    )
+
+                    response = {
+                        'sessionState': {
+                            'dialogAction': {
+                                'type': 'Close'
+                            },
+                            'intent': {
+                                'name': intent,
+                                'slots': slots,
+                                'state': 'Fulfilled'
+                            }
+                        },
+                        'messages': [
+                            {
+                                'contentType': 'PlainText',
+                                'content': receipt_message
+                            }
+                        ]
+                    }
+
+            elif not email_slot and receipt_confirmation == 'no':
+                print("Receipt confirmation is 'no'.")
+                response = {
+                    'sessionState': {
+                        'dialogAction': {
+                            'type': 'Close'
+                        },
+                        'intent': {
+                            'name': intent,
+                            'slots': slots,
+                            'state': 'Fulfilled'
+                        }
+                    },
+                    'messages': [
+                        {
+                            'contentType': 'PlainText',
+                            'content': 'Alright. Your order has been confirmed. Thank you for choosing us!'
+                        }
+                    ]
+                }
+            else:
+                print("Receipt confirmation is neither 'yes' nor 'no'. Eliciting the FallbackIntent.")
+                response = {
+                    'sessionState': {
+                        'dialogAction': {
+                            'type': 'ElicitIntent'
+                        },
+                        'intent': {
+                            'name': 'FallbackIntent',
+                            'state': 'Fulfilled'
+                        }
+                    },
+                    'messages': [
+                        {
+                            'contentType': 'PlainText',
+                            'content': "Sorry, I didn't understand your response. Please type 'start over' to restart the ordering process."
+                        }
+                    ]
+                }
 
 
     # Return the appropriate response if needed
