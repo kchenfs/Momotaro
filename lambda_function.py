@@ -616,9 +616,8 @@ def lambda_handler(event, context):
                         }
                     ]
                 }
-            elif receipt_confirmation == 'yes':
+            elif email_slot and receipt_confirmation == 'yes':
 
-                    email_slot = slots.get('CustomerEmail')
                     print("receipt confirmation is 'yes'.")
                     customer_email = email_slot['value']['interpretedValue']
                     sender_email = 'kencfs@outlook.com'  # Replace with your SES sender email
