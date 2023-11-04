@@ -593,6 +593,7 @@ def lambda_handler(event, context):
                 
 
         elif intent == 'EmailReceiptIntent':
+            print(slots)
             receipt_confirmation = slots.get('ReceiptConfirmation', {}).get('value', {}).get('interpretedValue', '').lower()
             email_slot = slots.get('CustomerEmail')
 
