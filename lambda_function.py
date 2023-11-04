@@ -379,9 +379,6 @@ def create_payment_intent(total_amount, customer_email):
         return None
 
 
-
-
-
 def lambda_handler(event, context):
     print("top of the tree in the lambda handler")
     print(event)
@@ -447,7 +444,6 @@ def lambda_handler(event, context):
         
         elif intent == 'OrderItem':
            
-            validation_result = validate(slots)
             confirmation_state = event['interpretations'][0]['intent']['confirmationState']
 
             if confirmation_state == 'Confirmed':
