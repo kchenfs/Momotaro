@@ -444,6 +444,7 @@ def lambda_handler(event, context):
         
         elif intent == 'OrderItem':
            
+            validation_result = validate(slots)
             confirmation_state = event['interpretations'][0]['intent']['confirmationState']
 
             if confirmation_state == 'Confirmed':
@@ -509,6 +510,7 @@ def lambda_handler(event, context):
                 }
 
             elif event['invocationSource'] == 'DialogCodeHook':#this only executes when we are in the OrderItem intent block and there are missing slot values, So it will return the intent as well as the slots with null values and that will be Lex's response
+                validation_result = validate(slots)
                 if not validation_result['isValid']:
                     response = {
                         'sessionState': {
