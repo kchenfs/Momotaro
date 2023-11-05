@@ -75,8 +75,6 @@ def validate(slots):
 
     return {'isValid': True}
 
-
-
 def extract_items_and_quantities(ordered_items):
     doc = nlp(ordered_items)
     
@@ -118,7 +116,6 @@ def find_closest_match(item_name, menu_items):
     print('this is the confidence score', score)
     return match if score >= 80 else None
 
-
 def parse_ordered_items(combined_list, menu_items):
     print("Before we apply the fuzzy matching", combined_list)
     parsed_items = []
@@ -148,7 +145,6 @@ def generate_order_id(length=5):
     order_id = ''.join(secrets.choice(characters) for _ in range(length))
     return order_id.upper()
 
-
 def get_item_price(item_name):
     # Define the API URL for fetching the price
     api_url = os.environ['ITEM_PRICE_API_URL']
@@ -172,7 +168,6 @@ def get_item_price(item_name):
     else:
         print(f"Price not found for item: aburi sushi")
         return None
-
 
 def get_item_names_from_menu_table():
     """
@@ -203,7 +198,6 @@ def get_item_names_from_menu_table():
         print('Failed to retrieve item names using the API')
         return None
 
-
 def save_customer_info(name, ordered_items, phone_number, pickup_time, total_price_with_tax):
     order_id = generate_order_id(5)
     print("save_customer_info", total_price_with_tax)
@@ -232,7 +226,6 @@ def save_customer_info(name, ordered_items, phone_number, pickup_time, total_pri
     else:
         print('Failed to save the info using the API')
         return None
-
 
 def generate_receipt(order_date, order_id, customer_name, customer_phone, ordered_items,
                      subtotal_price, tax_amount, total, pickup_time):
@@ -315,7 +308,6 @@ def send_lex_response(app_id, origination_number, destination_number, messages):
 
     return responses
 
-
 def handle_sns_message(event):
     sns_message = json.loads(event['Records'][0]['Sns']['Message'])
     app_id = os.environ['SNS_TOPIC_ID']
@@ -340,6 +332,50 @@ def handle_sns_message(event):
 
     return lex_response
 
+def prepare_line_items():
+    # Define the line items for the order, including details like name, amount, currency, quantity, etc.
+    # More details on line items: https://stripe.com/docs/api/checkout/sessions/create#create_session-line_items
+    line_items = [
+        {
+            'price_data': {
+                'currency': 'cad',
+                'product_data': {
+                    'name': 'Your Product Name',
+                },
+                'unit_amount': 5000,  # Amount in cents ($50.00)
+            },
+            'quantity': 1,  # You can customize this based on your needs
+        },
+    ]
+
+    return line_items
+
+def create_checkout_session(order_amount, customer_email):
+    line_items = prepare_line_items()
+
+    # Create a Checkout Session
+    session = stripe.checkout.Session.create(
+        payment_method_types=['card'],
+        line_items=line_items,
+        mode='payment',
+        success_url='your_success_url',  # Redirect URL after successful payment
+        cancel_url='your_cancel_url',    # Redirect URL if the customer cancels
+        customer_email=customer_email,   # Customer's email
+    )
+
+    return session
+
+# Usage example
+def initiate_payment():
+    customer_email = 'customer@example.com'
+
+    # Create a Checkout Session
+    session = create_checkout_session(5000, customer_email)
+
+    # Redirect the customer to the Stripe Checkout page
+    return session.url
+
+# This function should be called when the customer decides to proceed with payment
 
 
 def send_email(sender_email, customer_email, subject, body):
@@ -363,20 +399,6 @@ def send_email(sender_email, customer_email, subject, body):
         print("Email sent successfully:", response)
     except botocore.exceptions.ClientError as e:
         print("Error sending email:", e)
-
-
-def create_payment_intent(total_amount, customer_email):
-    try:
-        intent = stripe.PaymentIntent.create(
-            amount=int(total_amount * 100),  # Amount in cents
-            currency='usd',
-            description='Order payment',
-            receipt_email=customer_email,
-        )
-        return intent.client_secret
-    except stripe.error.StripeError as e:
-        # Handle errors here
-        return None
 
 
 def lambda_handler(event, context):
@@ -418,6 +440,7 @@ def lambda_handler(event, context):
                     }
                 ]
             }
+        
         elif intent == 'RestartIntent':
             response = {
                 'sessionState': {
@@ -441,9 +464,7 @@ def lambda_handler(event, context):
                     }
                 ]
             }
-
-                            
-        
+     
         elif intent == 'OrderItem':
            
             validation_result = validate(slots)
@@ -467,17 +488,17 @@ def lambda_handler(event, context):
                         'OrderId':order_id
                 })
                 total_price_with_tax = float(total_price_with_tax)  # Convert the string to a float
-                receipt_message = f"Thanks, {name}, I placed your order. Your order number is {order_id}, see you at {pickup_time}. " \
-                                f"Total price: ${total_price_with_tax:.2f} (including tax). Did you want a copy of your receipt to be sent via email?"
+                
+                receipt_message = f"Thanks, {name}, your order has been confirmed. Your total is ${total_price_with_tax:.2f} and the order id is {order_id}, see you at {pickup_time}. Would you like to proceed with the payment now?" \
 
                 response = {
                     'sessionState': {
                         'dialogAction': {
                             'type': 'ElicitSlot',
-                            'slotToElicit': 'ReceiptConfirmation'
+                            'slotToElicit': 'PaymentConfirmation'
                         },
                         'intent': {
-                            'name': 'EmailReceiptIntent',
+                            'name': 'PayOrder',
                             'state': 'InProgress'
                         },
                         'sessionAttributes': session_attributes  # Save the updated session_attributes with customer info
@@ -538,7 +559,6 @@ def lambda_handler(event, context):
                     # Update the slots dictionary with the values from session_attributes
                     session_attributes.update({
                         'CustomerName': name,
-                        'ItemChoice': ordered_items,
                         'OrderPickUpTime': pickup_time,
                         'PhoneNumber': phone_number
                     })     
@@ -552,17 +572,28 @@ def lambda_handler(event, context):
                     menu_items = get_item_names_from_menu_table()
                     parsed_items = parse_ordered_items(combined_list, menu_items)
 
-                    subtotal_price = sum(get_item_price(item) * quantity for item, quantity in parsed_items)
+                   # Initialize an empty list to store item prices
+                    item_prices = []
+
+                    # Calculate subtotal and collect item prices
+                    subtotal_price = 0
+                    for item, quantity in parsed_items:
+                        item_price = get_item_price(item)
+                        item_prices.append(item_price)
+                        subtotal_price += item_price * quantity
+                    print("Here are the prices of each item", item_prices)
                     tax_amount = subtotal_price * tax_rate
                     tax_amount = round(tax_amount, 2)
                     total_price_with_tax = tax_amount + subtotal_price
                     total_price_with_tax = round(total_price_with_tax, 2)
                     ordered_items = format_ordered_items(parsed_items)
+
                     session_attributes.update({
-                        'ItemChoice': ordered_items,  
-                        'BillSubtotal':subtotal_price,
-                        'BillTaxAmount':tax_amount,
-                        'BillTotal':total_price_with_tax
+                        'ItemChoice': ordered_items,
+                        'BillSubtotal': subtotal_price,
+                        'BillTaxAmount': tax_amount,
+                        'BillTotal': total_price_with_tax,
+                        'ItemPrices': item_prices  # Store the list of item prices
                     })
                     print("sessionAttributes after spacy and fuzzy", session_attributes, ordered_items)    
                     # Call confirm_intent function to generate the confirmation message
@@ -590,7 +621,66 @@ def lambda_handler(event, context):
                             }
                         ]
                     }
-                
+        
+        elif intent == "PayOrder":
+            print("This is in the PayOrder intent")
+            payment_confirmation = slots.get('PaymentConfirmation')
+            if payment_confirmation == 'yes':
+                # Create a Stripe Checkout session
+                order_amount = 5000  # Amount in cents ($50.00), customize based on your order total
+                customer_email = 'customer@example.com'  # Retrieve the customer's email or ask for it
+                session = create_checkout_session(order_amount, customer_email, line_items)
+
+                # Provide the URL for the customer to make a payment
+                payment_url = session.url
+
+                # Define Lex's response to provide the payment URL
+                response = {
+                    'sessionState': {
+                        'dialogAction': {
+                            'type': 'ElicitIntent'
+                        },
+                        'intent': {
+                            'name': intent,
+                            'slots': slots,
+                            'state': 'Fulfilled'
+                        },
+                        'sessionAttributes': session_attributes
+                    },
+                    'messages': [
+                        {
+                            'contentType': 'PlainText',
+                            'content': f"Great! You can proceed with the payment by following this link: {payment_url}."
+                        }
+                    ]
+                }
+
+            elif payment_confirmation == 'no':
+                # Ask if the customer wants a receipt to be sent
+                response = {
+                    'sessionState': {
+                        'dialogAction': {
+                            'type': 'ElicitSlot',
+                            'slotToElicit': 'ReceiptConfirmation'
+                        },
+                        'intent': {
+                            'name': 'EmailReceiptIntent',
+                            'state': 'InProgress'
+                        },
+                        'sessionAttributes': session_attributes
+                    },
+                    'messages': [
+                        {
+                            'contentType': 'PlainText',
+                            'content': "Would you like a copy of your receipt to be sent via email? (yes/no)"
+                        }
+                    ]
+                }
+
+            # Return the appropriate response
+            return response
+
+
 
         elif intent == 'EmailReceiptIntent':
             print(slots)
