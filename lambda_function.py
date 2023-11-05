@@ -588,6 +588,7 @@ def lambda_handler(event, context):
                     total_price_with_tax = tax_amount + subtotal_price
                     total_price_with_tax = round(total_price_with_tax, 2)
                     ordered_items = format_ordered_items(parsed_items)
+                    item_prices = [item_prices]
                     print("debugging statement to see how far we get")
                     session_attributes.update({
                         'ItemChoice': ordered_items,
