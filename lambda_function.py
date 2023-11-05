@@ -582,6 +582,7 @@ def lambda_handler(event, context):
                         item_prices.append(item_price)
                         subtotal_price += item_price * quantity
                     print("Here are the prices of each item", item_prices)
+                    print("here is the subtotal price", subtotal_price)
                     tax_amount = subtotal_price * tax_rate
                     tax_amount = round(tax_amount, 2)
                     total_price_with_tax = tax_amount + subtotal_price
