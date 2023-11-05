@@ -579,7 +579,10 @@ def lambda_handler(event, context):
                     subtotal_price = 0
                     for item, quantity in parsed_items:
                         item_price = get_item_price(item)
+                        print(item)
+                        print(item_price)
                         item_prices.append(item_price)
+                        print(item_prices)
                         subtotal_price += item_price * quantity
                     print("Here are the prices of each item", item_prices)
                     print("here is the subtotal price", subtotal_price)
