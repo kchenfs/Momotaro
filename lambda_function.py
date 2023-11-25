@@ -675,7 +675,7 @@ def lambda_handler(event, context):
                     'messages': [
                         {
                             'contentType': 'PlainText',
-                                'content': f"Great! You can proceed with the payment by following this link: <a href='{payment_url}'>Proceed to Payment</a>."
+                                'content': f"Great! You can proceed with the payment by following this link: {payment_url}"
                         }
                     ]
                 }
