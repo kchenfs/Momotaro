@@ -375,16 +375,6 @@ def create_checkout_session(line_items):
     return payment_url
 
 # Usage example
-def initiate_payment():
-    customer_email = 'customer@example.com'
-
-    # Create a Checkout Session
-    session = create_checkout_session(5000, customer_email)
-
-    # Redirect the customer to the Stripe Checkout page
-    return session.url
-
-# This function should be called when the customer decides to proceed with payment
 
 
 def send_email(sender_email, customer_email, subject, body):

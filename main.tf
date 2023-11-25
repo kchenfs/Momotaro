@@ -433,7 +433,7 @@ resource "aws_lambda_function" "momotaro_function" {
       SAVE_CUSTOMER_INFO_API_URL = "${aws_api_gateway_deployment.momotaro_deployment.invoke_url}test/Momotaro/SaveCustomerInfo/"
       SNS_TOPIC_ID               = aws_sns_topic.my_topic.id # Add this line to reference the SNS topic ID
       LEX_BOT_ID                 = "IF1YEI2Z1K"
-      LEX_ALIAS_ID               = "TSTALIASID"
+      LEX_ALIAS_ID               = "LZEGJMXRQK"
       STRIPE_SECRET_KEY          = data.aws_ssm_parameter.stripe_secret_key.value
 
       # Add other environment variables as needed
