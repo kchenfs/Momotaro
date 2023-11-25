@@ -332,38 +332,47 @@ def handle_sns_message(event):
 
     return lex_response
 
-def prepare_line_items():
-    # Define the line items for the order, including details like name, amount, currency, quantity, etc.
-    # More details on line items: https://stripe.com/docs/api/checkout/sessions/create#create_session-line_items
-    line_items = [
-        {
-            'price_data': {
-                'currency': 'cad',
-                'product_data': {
-                    'name': 'Your Product Name',
+def prepare_line_items(session_attributes):
+    # Extract relevant information from session_attributes
+    item_choices = session_attributes.get("ItemChoice", "").split(", ")
+    item_prices = [float(price) for price in session_attributes.get("ItemPrices", "").split(", ")]
+    
+    print(item_choices, item_prices)
+    line_items = []
+    for choice, price in zip(item_choices, item_prices):
+            quantity = int(choice.split()[0])  # Extract quantity from the item choice
+            item_name = " ".join(choice.split()[1:])  # Extract the name of the item
+
+            line_item = {
+                'price_data': {
+                    'currency': 'cad',
+                    'product_data': {
+                        'name': item_name,
+                    },
+                    'unit_amount': int(price * 100),  # Convert price to cents
                 },
-                'unit_amount': 5000,  # Amount in cents ($50.00)
-            },
-            'quantity': 1,  # You can customize this based on your needs
-        },
-    ]
+                'quantity': quantity,
+            }
+
+            line_items.append(line_item)
 
     return line_items
 
-def create_checkout_session(order_amount, customer_email):
-    line_items = prepare_line_items()
+
+def create_checkout_session(line_items):
 
     # Create a Checkout Session
     session = stripe.checkout.Session.create(
         payment_method_types=['card'],
         line_items=line_items,
         mode='payment',
-        success_url='your_success_url',  # Redirect URL after successful payment
-        cancel_url='your_cancel_url',    # Redirect URL if the customer cancels
-        customer_email=customer_email,   # Customer's email
+        success_url='https://kchenfs.com/',
+        billing_address_collection='required'
     )
+    
+    payment_url = session.url
 
-    return session
+    return payment_url
 
 # Usage example
 def initiate_payment():
@@ -571,19 +580,25 @@ def lambda_handler(event, context):
                     print("combined list", combined_list)
                     menu_items = get_item_names_from_menu_table()
                     parsed_items = parse_ordered_items(combined_list, menu_items)
+                    print("debugging statement", parsed_items)
 
-                   # Initialize an empty list to store item prices
-                    item_prices = []
-
-                    # Calculate subtotal and collect item prices
+                   # Calculate subtotal and directly concatenate item prices with a comma and space
                     subtotal_price = 0
+                    item_prices = ""  # Initialize an empty string to store item prices
+
                     for item, quantity in parsed_items:
                         item_price = get_item_price(item)
                         print(item)
                         print(item_price)
-                        item_prices.append(item_price)
-                        print(item_prices)
+                        item_prices += str(item_price) + ', '  # Concatenate item_price as a string with a comma and space
+
                         subtotal_price += item_price * quantity
+
+                    # Remove the trailing comma and space if it's not needed
+                    if item_prices.endswith(', '):
+                        item_prices = item_prices[:-2]
+
+
                     print("Here are the prices of each item", item_prices)
                     print("here is the subtotal price", subtotal_price)
                     tax_amount = subtotal_price * tax_rate
@@ -591,16 +606,18 @@ def lambda_handler(event, context):
                     total_price_with_tax = tax_amount + subtotal_price
                     total_price_with_tax = round(total_price_with_tax, 2)
                     ordered_items = format_ordered_items(parsed_items)
-                    item_prices = [item_prices]
+                    print(item_prices)
                     print("debugging statement to see how far we get")
+                    print(session_attributes)
                     session_attributes.update({
                         'ItemChoice': ordered_items,
                         'BillSubtotal': subtotal_price,
                         'BillTaxAmount': tax_amount,
                         'BillTotal': total_price_with_tax,
                         'ItemPrices': item_prices  # Store the list of item prices
+
                     })
-                    print("sessionAttributes after spacy and fuzzy", session_attributes, ordered_items)    
+                    print("sessionAttributes after spacy and fuzzy", session_attributes)    
                     # Call confirm_intent function to generate the confirmation message
                     return {
                         'sessionState': {
@@ -629,16 +646,19 @@ def lambda_handler(event, context):
         
         elif intent == "PayOrder":
             print("This is in the PayOrder intent")
-            payment_confirmation = slots.get('PaymentConfirmation')
-            if payment_confirmation == 'yes':
+            payment_confirmation = event['sessionState']['intent']['slots']['PaymentConfirmation']['value']['interpretedValue']
+            print(event)
+            print(payment_confirmation)
+            print(session_attributes)
+
+            print("this is the slot value for payment confirmation", payment_confirmation)
+            if payment_confirmation == 'Yes':
                 # Create a Stripe Checkout session
-                order_amount = 5000  # Amount in cents ($50.00), customize based on your order total
-                customer_email = 'customer@example.com'  # Retrieve the customer's email or ask for it
-                session = create_checkout_session(order_amount, customer_email, line_items)
-
+                print("How far did I make it")
+                line_items = prepare_line_items(session_attributes)
+                payment_url = create_checkout_session(line_items)
+                print('did it work')
                 # Provide the URL for the customer to make a payment
-                payment_url = session.url
-
                 # Define Lex's response to provide the payment URL
                 response = {
                     'sessionState': {
@@ -655,7 +675,7 @@ def lambda_handler(event, context):
                     'messages': [
                         {
                             'contentType': 'PlainText',
-                            'content': f"Great! You can proceed with the payment by following this link: {payment_url}."
+                            'content': f"Great! You can proceed with the payment by following this link: <a href='{payment_url}'>{payment_url}</a>."
                         }
                     ]
                 }
@@ -683,7 +703,7 @@ def lambda_handler(event, context):
                 }
 
             # Return the appropriate response
-            return response
+    
 
 
 
