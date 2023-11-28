@@ -401,7 +401,6 @@ def send_email(sender_email, customer_email, subject, body):
 
 
 def lambda_handler(event, context):
-    session_attributes = event['sessionState']['sessionAttributes']
     print("this is the session attributes", session_attributes)
     print("top of the tree in the lambda handler")
     print(event)
